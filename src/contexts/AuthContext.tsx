@@ -1,68 +1,161 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Employee } from '@/types';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { User, AppRole, Profile } from '@/types';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  employees: Employee[];
-  setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock data for demo
-const MOCK_USERS = [
-  { id: '1', name: 'Admin User', email: 'admin@bda.com', password: 'admin123', role: 'admin' as const },
-  { id: '2', name: 'John Smith', email: 'john@bda.com', password: 'emp123', role: 'employee' as const },
-  { id: '3', name: 'Sarah Wilson', email: 'sarah@bda.com', password: 'emp123', role: 'employee' as const },
-];
-
-const INITIAL_EMPLOYEES: Employee[] = [
-  { id: '2', name: 'John Smith', email: 'john@bda.com', role: 'employee', isActive: true, createdAt: new Date('2024-01-15'), leadsCount: 45 },
-  { id: '3', name: 'Sarah Wilson', email: 'sarah@bda.com', role: 'employee', isActive: true, createdAt: new Date('2024-02-20'), leadsCount: 38 },
-  { id: '4', name: 'Mike Johnson', email: 'mike@bda.com', role: 'employee', isActive: true, createdAt: new Date('2024-03-10'), leadsCount: 52 },
-  { id: '5', name: 'Emily Davis', email: 'emily@bda.com', role: 'employee', isActive: false, createdAt: new Date('2024-01-05'), leadsCount: 28 },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('bda_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
-  }, []);
+  const fetchUserData = async (supabaseUser: SupabaseUser) => {
+    try {
+      // Get profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', supabaseUser.id)
+        .single();
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    const foundUser = MOCK_USERS.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const employee = employees.find(e => e.email === email);
-      if (foundUser.role === 'employee' && employee && !employee.isActive) {
-        return false;
+      if (profileError) throw profileError;
+
+      // Check if user is active
+      if (profile && !profile.is_active) {
+        await supabase.auth.signOut();
+        return null;
       }
-      
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('bda_user', JSON.stringify(userWithoutPassword));
-      return true;
+
+      // Get role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', supabaseUser.id)
+        .single();
+
+      if (roleError) throw roleError;
+
+      return {
+        id: supabaseUser.id,
+        name: profile?.name || supabaseUser.email || 'User',
+        email: supabaseUser.email || '',
+        role: roleData?.role as AppRole || 'employee',
+        employee_id: profile?.employee_id,
+        is_active: profile?.is_active,
+      };
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
     }
-    return false;
   };
 
-  const logout = () => {
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Defer fetching user data to avoid deadlock
+          setTimeout(async () => {
+            const userData = await fetchUserData(session.user);
+            setUser(userData);
+            setIsLoading(false);
+          }, 0);
+        } else {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchUserData(session.user).then((userData) => {
+          setUser(userData);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        const userData = await fetchUserData(data.user);
+        if (!userData) {
+          return { success: false, error: 'Account is deactivated or not found' };
+        }
+        setUser(userData);
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signup = async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name,
+          },
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          return { success: false, error: 'This email is already registered. Please login instead.' };
+        }
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('bda_user');
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, employees, setEmployees }}>
+    <AuthContext.Provider value={{ user, session, isLoading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

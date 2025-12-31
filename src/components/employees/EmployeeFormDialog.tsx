@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Employee } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Employee, useEmployees } from '@/hooks/useEmployees';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,143 +10,44 @@ import { toast } from 'sonner';
 interface EmployeeFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  employee?: Employee;
-  mode: 'add' | 'edit';
+  employee: Employee;
 }
 
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-const EmployeeFormDialog = ({ open, onOpenChange, employee, mode }: EmployeeFormDialogProps) => {
-  const { setEmployees } = useAuth();
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    isActive: true,
-  });
+const EmployeeFormDialog = ({ open, onOpenChange, employee }: EmployeeFormDialogProps) => {
+  const { updateEmployee } = useEmployees();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', employee_id: '', is_active: true });
 
   useEffect(() => {
     if (employee) {
-      setFormData({
-        name: employee.name,
-        email: employee.email,
-        password: '',
-        isActive: employee.isActive,
-      });
-    } else {
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        isActive: true,
-      });
+      setFormData({ name: employee.name, email: employee.email, employee_id: employee.employee_id || '', is_active: employee.is_active ?? true });
     }
   }, [employee, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name || !formData.email) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (mode === 'add') {
-      if (!formData.password) {
-        toast.error('Password is required for new employees');
-        return;
-      }
-      
-      const newEmployee: Employee = {
-        id: generateId(),
-        name: formData.name,
-        email: formData.email,
-        role: 'employee',
-        isActive: formData.isActive,
-        createdAt: new Date(),
-        leadsCount: 0,
-      };
-      
-      setEmployees(prev => [...prev, newEmployee]);
-      toast.success('Employee added successfully');
-    } else if (employee) {
-      setEmployees(prev => prev.map(emp => 
-        emp.id === employee.id 
-          ? { ...emp, name: formData.name, email: formData.email, isActive: formData.isActive }
-          : emp
-      ));
-      toast.success('Employee updated successfully');
-    }
-
-    onOpenChange(false);
+    if (!formData.name || !formData.email) { toast.error('Please fill in all required fields'); return; }
+    setIsSubmitting(true);
+    const success = await updateEmployee(employee.user_id, { name: formData.name, email: formData.email, employee_id: formData.employee_id || null, is_active: formData.is_active });
+    if (success) { toast.success('Employee updated successfully'); onOpenChange(false); }
+    setIsSubmitting(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
-            {mode === 'add' ? 'Add New Employee' : 'Edit Employee'}
-          </DialogTitle>
-        </DialogHeader>
-
+        <DialogHeader><DialogTitle className="text-xl font-semibold">Edit Employee</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Enter full name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="email@bda.com"
-            />
-          </div>
-
-          {mode === 'add' && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Enter password"
-              />
-            </div>
-          )}
-
+          <div className="space-y-2"><Label>Full Name *</Label><Input value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="Enter full name" /></div>
+          <div className="space-y-2"><Label>Email *</Label><Input type="email" value={formData.email} onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))} placeholder="email@company.com" /></div>
+          <div className="space-y-2"><Label>Employee ID</Label><Input value={formData.employee_id} onChange={(e) => setFormData(p => ({ ...p, employee_id: e.target.value }))} placeholder="EMP001" /></div>
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
-            <div>
-              <Label htmlFor="isActive" className="font-medium">Account Status</Label>
-              <p className="text-sm text-muted-foreground">
-                {formData.isActive ? 'Employee can login' : 'Employee cannot login'}
-              </p>
-            </div>
-            <Switch
-              id="isActive"
-              checked={formData.isActive}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
-            />
+            <div><Label className="font-medium">Account Status</Label><p className="text-sm text-muted-foreground">{formData.is_active ? 'Employee can login' : 'Employee cannot login'}</p></div>
+            <Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData(p => ({ ...p, is_active: checked }))} />
           </div>
-
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" className="gradient-primary">
-              {mode === 'add' ? 'Add Employee' : 'Save Changes'}
-            </Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" className="gradient-primary" disabled={isSubmitting}>{isSubmitting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : 'Save Changes'}</Button>
           </div>
         </form>
       </DialogContent>

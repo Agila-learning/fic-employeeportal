@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lead, STATUS_OPTIONS, SOURCE_OPTIONS } from '@/types';
-import { useLeads } from '@/contexts/LeadsContext';
+import { useLeads } from '@/hooks/useLeads';
 import {
   Table,
   TableBody,
@@ -32,10 +32,11 @@ import { toast } from 'sonner';
 interface LeadsTableProps {
   leads: Lead[];
   showAssignee?: boolean;
+  onRefresh?: () => void;
 }
 
-const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
-  const { updateLead, deleteLead } = useLeads();
+const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps) => {
+  const { deleteLead } = useLeads();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
@@ -46,7 +47,7 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
     const matchesSearch = 
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.candidateId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.candidate_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.phone.includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
@@ -55,9 +56,12 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
     return matchesSearch && matchesStatus && matchesSource;
   });
 
-  const handleDelete = (id: string) => {
-    deleteLead(id);
-    toast.success('Lead deleted successfully');
+  const handleDelete = async (id: string) => {
+    const success = await deleteLead(id);
+    if (success) {
+      toast.success('Lead deleted successfully');
+      onRefresh?.();
+    }
   };
 
   const exportToExcel = () => {
@@ -65,14 +69,14 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
     const csvContent = [
       headers.join(','),
       ...filteredLeads.map(lead => [
-        lead.candidateId,
+        lead.candidate_id,
         lead.name,
         lead.email,
         lead.phone,
-        lead.qualification,
-        lead.pastExperience,
-        lead.currentCtc,
-        lead.expectedCtc,
+        lead.qualification || '',
+        lead.past_experience || '',
+        lead.current_ctc || '',
+        lead.expected_ctc || '',
         STATUS_OPTIONS.find(s => s.value === lead.status)?.label || lead.status,
         SOURCE_OPTIONS.find(s => s.value === lead.source)?.label || lead.source,
       ].join(','))
@@ -81,7 +85,7 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `leads_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `fic_leads_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     toast.success('Leads exported successfully');
   };
@@ -89,7 +93,7 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-card p-4 shadow-sm border border-border/50">
+      <div className="flex flex-wrap items-center gap-4 rounded-xl bg-card p-4 shadow-sm border border-border/50">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -167,11 +171,11 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
             ) : (
               filteredLeads.map((lead) => (
                 <TableRow key={lead.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="font-medium text-primary">{lead.candidateId}</TableCell>
+                  <TableCell className="font-mono font-medium text-primary">{lead.candidate_id}</TableCell>
                   <TableCell>
                     <div>
                       <p className="font-medium">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground">{lead.pastExperience}</p>
+                      <p className="text-xs text-muted-foreground">{lead.past_experience}</p>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -183,8 +187,8 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
                   <TableCell className="text-sm">{lead.qualification}</TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <p>Current: {lead.currentCtc}</p>
-                      <p className="text-muted-foreground">Expected: {lead.expectedCtc}</p>
+                      <p>Current: {lead.current_ctc || '-'}</p>
+                      <p className="text-muted-foreground">Expected: {lead.expected_ctc || '-'}</p>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -233,6 +237,7 @@ const LeadsTable = ({ leads, showAssignee = false }: LeadsTableProps) => {
           onOpenChange={(open) => !open && setEditingLead(null)}
           lead={editingLead}
           mode="edit"
+          onSave={onRefresh}
         />
       )}
 

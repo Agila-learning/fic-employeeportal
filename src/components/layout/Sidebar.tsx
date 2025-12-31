@@ -5,12 +5,12 @@ import {
   Users, 
   UserPlus, 
   FileSpreadsheet, 
-  Settings, 
   LogOut,
   ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import ficLogo from '@/assets/fic-logo.jpeg';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -34,26 +34,26 @@ const Sidebar = () => {
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground">
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-            <span className="text-lg font-bold text-primary-foreground">B</span>
+        <div className="flex h-20 items-center gap-3 border-b border-sidebar-border px-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-card overflow-hidden shadow-md">
+            <img src={ficLogo} alt="FIC Logo" className="h-10 w-10 object-contain" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold">BDA Portal</h1>
-            <p className="text-xs text-sidebar-foreground/60">Lead Management</p>
+            <h1 className="text-lg font-bold text-sidebar-primary">FIC Sales Portal</h1>
+            <p className="text-xs text-sidebar-foreground/60">Shaping Future</p>
           </div>
         </div>
 
         {/* User Info */}
         <div className="border-b border-sidebar-border p-4">
-          <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-accent">
-              <span className="text-sm font-semibold text-accent-foreground">
+          <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent p-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full gradient-secondary shadow-md">
+              <span className="text-sm font-bold text-secondary-foreground">
                 {user?.name.split(' ').map(n => n[0]).join('')}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name}</p>
+              <p className="text-sm font-semibold truncate">{user?.name}</p>
               <p className="text-xs text-sidebar-foreground/60 capitalize">{user?.role}</p>
             </div>
           </div>
@@ -61,7 +61,7 @@ const Sidebar = () => {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-4">
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+          <p className="mb-3 px-3 text-xs font-bold uppercase tracking-wider text-sidebar-foreground/40">
             Navigation
           </p>
           {links.map((link) => {
@@ -71,9 +71,9 @@ const Sidebar = () => {
                 key={link.to}
                 to={link.to}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 )}
               >
@@ -89,7 +89,7 @@ const Sidebar = () => {
         <div className="border-t border-sidebar-border p-4">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive"
+            className="w-full justify-start gap-3 rounded-xl text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive"
             onClick={logout}
           >
             <LogOut className="h-5 w-5" />

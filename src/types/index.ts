@@ -1,69 +1,86 @@
-export type LeadStatus = 
-  | 'nc1' 
-  | 'nc2' 
-  | 'nc3' 
-  | 'rejected' 
-  | 'not_interested' 
-  | 'not_interested_paid' 
-  | 'different_domain'
-  | 'converted'
-  | 'follow_up';
+import { Database } from '@/integrations/supabase/types';
 
-export type LeadSource = 
-  | 'social_media' 
-  | 'own_source' 
-  | 'college' 
-  | 'referral' 
-  | 'job_portal' 
-  | 'website'
-  | 'other';
+export type LeadStatus = Database['public']['Enums']['lead_status'];
+export type LeadSource = Database['public']['Enums']['lead_source'];
+export type AppRole = Database['public']['Enums']['app_role'];
 
 export interface Lead {
   id: string;
-  candidateId: string;
+  candidate_id: string;
   name: string;
   email: string;
   phone: string;
-  qualification: string;
-  pastExperience: string;
-  currentCtc: string;
-  expectedCtc: string;
+  qualification: string | null;
+  past_experience: string | null;
+  current_ctc: string | null;
+  expected_ctc: string | null;
   status: LeadStatus;
   source: LeadSource;
-  resumeUrl?: string;
-  notes?: string;
-  assignedTo: string;
-  createdAt: Date;
-  updatedAt: Date;
+  resume_url: string | null;
+  notes: string | null;
+  assigned_to: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Employee {
+export interface LeadComment {
   id: string;
+  lead_id: string;
+  user_id: string | null;
+  comment: string;
+  created_at: string;
+  user_name?: string;
+}
+
+export interface LeadStatusHistory {
+  id: string;
+  lead_id: string;
+  changed_by: string | null;
+  old_status: LeadStatus | null;
+  new_status: LeadStatus;
+  notes: string | null;
+  created_at: string;
+  changed_by_name?: string;
+}
+
+export interface Profile {
+  id: string;
+  user_id: string;
+  employee_id: string | null;
   name: string;
   email: string;
-  role: 'admin' | 'employee';
-  isActive: boolean;
-  createdAt: Date;
-  leadsCount: number;
+  phone: string | null;
+  is_active: boolean | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: AppRole;
 }
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'employee';
+  role: AppRole;
+  employee_id?: string | null;
+  is_active?: boolean | null;
 }
 
 export const STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
-  { value: 'nc1', label: 'NC1 - First Contact', color: 'bg-blue-100 text-blue-700' },
-  { value: 'nc2', label: 'NC2 - Second Contact', color: 'bg-blue-200 text-blue-800' },
-  { value: 'nc3', label: 'NC3 - Third Contact', color: 'bg-blue-300 text-blue-900' },
-  { value: 'follow_up', label: 'Follow Up', color: 'bg-amber-100 text-amber-700' },
-  { value: 'converted', label: 'Converted', color: 'bg-green-100 text-green-700' },
-  { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700' },
-  { value: 'not_interested', label: 'Not Interested', color: 'bg-gray-100 text-gray-700' },
-  { value: 'not_interested_paid', label: 'Not Interested (Paid)', color: 'bg-orange-100 text-orange-700' },
-  { value: 'different_domain', label: 'Different Domain', color: 'bg-purple-100 text-purple-700' },
+  { value: 'nc1', label: 'NC1 - First Contact', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { value: 'nc2', label: 'NC2 - Second Contact', color: 'bg-blue-200 text-blue-800 border-blue-300' },
+  { value: 'nc3', label: 'NC3 - Third Contact', color: 'bg-blue-300 text-blue-900 border-blue-400' },
+  { value: 'follow_up', label: 'Follow Up', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { value: 'converted', label: 'Converted', color: 'bg-green-100 text-green-700 border-green-200' },
+  { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700 border-red-200' },
+  { value: 'not_interested', label: 'Not Interested', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  { value: 'not_interested_paid', label: 'Not Interested (Paid)', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { value: 'different_domain', label: 'Different Domain', color: 'bg-purple-100 text-purple-700 border-purple-200' },
 ];
 
 export const SOURCE_OPTIONS: { value: LeadSource; label: string }[] = [
