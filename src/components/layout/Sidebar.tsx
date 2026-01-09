@@ -63,9 +63,6 @@ const Sidebar = () => {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-4">
-          <p className="mb-3 px-3 text-xs font-bold uppercase tracking-wider text-white/40">
-            Navigation
-          </p>
           {links.map((link) => {
             const isActive = location.pathname === link.to;
             return (

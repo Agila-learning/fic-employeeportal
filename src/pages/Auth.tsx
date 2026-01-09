@@ -90,26 +90,29 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Background decoration */}
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950">
+      {/* Enhanced Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-amber-500/20 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-gradient-to-br from-amber-500/30 to-orange-500/20 blur-3xl animate-pulse-soft" />
+        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-gradient-to-br from-blue-600/25 to-indigo-600/20 blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/3 left-1/4 h-64 w-64 rounded-full bg-purple-500/15 blur-3xl animate-float" />
+        <div className="absolute bottom-1/3 right-1/4 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
 
       <div className="flex-1 flex items-center justify-center p-4 relative">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md animate-fade-in">
           {/* Logo */}
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-2xl bg-white shadow-2xl overflow-hidden">
-              <img src={ficLogo} alt="FIC Logo" className="h-20 w-20 object-contain" />
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-2xl overflow-hidden ring-4 ring-white/10 hover:ring-amber-400/30 transition-all duration-500 hover:scale-105">
+              <img src={ficLogo} alt="FIC Logo" className="h-full w-full object-cover" />
             </div>
-            <h1 className="text-3xl font-bold text-white">FIC BDA Portal</h1>
-            <p className="text-amber-400 font-medium mt-1">Building Future</p>
+            <h1 className="text-3xl font-bold text-white drop-shadow-lg">FIC BDA Portal</h1>
+            <p className="text-amber-400 font-medium mt-1 tracking-wide">Building Future</p>
           </div>
 
-          <Card className="border-white/10 shadow-2xl bg-white/10 backdrop-blur-xl">
+          <Card className="border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl hover:bg-white/10 transition-all duration-500">
             <CardHeader className="text-center pb-2">
               <CardTitle className="text-xl text-white">
                 {isSignUp ? 'Create Account' : 'Welcome Back'}
