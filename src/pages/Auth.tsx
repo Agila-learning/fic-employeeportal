@@ -105,8 +105,8 @@ const Auth = () => {
         <div className="w-full max-w-md animate-fade-in">
           {/* Logo */}
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-2xl shadow-2xl overflow-hidden ring-4 ring-white/10 hover:ring-amber-400/30 transition-all duration-500 hover:scale-105">
-              <img src={ficLogo} alt="FIC Logo" className="h-full w-full object-contain" />
+            <div className="mx-auto mb-4 h-28 w-28 rounded-full shadow-2xl overflow-hidden ring-4 ring-amber-400/30 hover:ring-amber-400/50 transition-all duration-500 hover:scale-105">
+              <img src={ficLogo} alt="FIC Logo" className="h-full w-full object-cover scale-110" />
             </div>
             <h1 className="text-3xl font-bold text-white drop-shadow-lg">FIC BDA Portal</h1>
             <p className="text-amber-400 font-medium mt-1 tracking-wide">Building Future</p>
