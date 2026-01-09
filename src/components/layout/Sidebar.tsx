@@ -7,7 +7,10 @@ import {
   FileSpreadsheet, 
   LogOut,
   ChevronRight,
-  Bell
+  ClipboardList,
+  Megaphone,
+  CalendarCheck,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,12 +25,17 @@ const Sidebar = () => {
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/employees', icon: Users, label: 'Employees' },
     { to: '/admin/leads', icon: FileSpreadsheet, label: 'All Leads' },
+    { to: '/admin/tasks', icon: ClipboardList, label: 'Tasks' },
+    { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
+    { to: '/admin/attendance', icon: CalendarCheck, label: 'Attendance' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const employeeLinks = [
     { to: '/employee', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/employee/leads', icon: FileSpreadsheet, label: 'My Leads' },
     { to: '/employee/add-lead', icon: UserPlus, label: 'Add Lead' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const links = user?.role === 'admin' ? adminLinks : employeeLinks;
@@ -62,7 +70,7 @@ const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
           {links.map((link) => {
             const isActive = location.pathname === link.to;
             return (

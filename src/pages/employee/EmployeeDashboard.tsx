@@ -5,19 +5,24 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatsCard from '@/components/dashboard/StatsCard';
 import FollowupNotifications from '@/components/leads/FollowupNotifications';
 import LeadFormDialog from '@/components/leads/LeadFormDialog';
-import { FileSpreadsheet, CheckCircle, Clock, XCircle, Plus, Bell, ArrowRight, TrendingUp } from 'lucide-react';
+import AttendanceCard from '@/components/dashboard/AttendanceCard';
+import AnnouncementsCard from '@/components/dashboard/AnnouncementsCard';
+import TasksCard from '@/components/dashboard/TasksCard';
+import { FileSpreadsheet, CheckCircle, Clock, XCircle, Plus, Bell, ArrowRight, TrendingUp, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import LeadStatusBadge from '@/components/leads/LeadStatusBadge';
 import { STATUS_OPTIONS, Lead } from '@/types';
 import { cn } from '@/lib/utils';
+import { getRandomQuote } from '@/utils/motivationalQuotes';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
   const { leads, getLeadsByEmployee, refetchLeads } = useLeads();
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [greeting, setGreeting] = useState('');
+  const [quote, setQuote] = useState('');
 
   const myLeads = user ? getLeadsByEmployee(user.id) : [];
   const totalLeads = myLeads.length;
@@ -38,6 +43,8 @@ const EmployeeDashboard = () => {
     if (hour < 12) setGreeting('Good Morning');
     else if (hour < 17) setGreeting('Good Afternoon');
     else setGreeting('Good Evening');
+    
+    setQuote(getRandomQuote());
   }, []);
 
   return (
@@ -50,10 +57,13 @@ const EmployeeDashboard = () => {
           <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-blue-500/20 blur-3xl" />
           
           <div className="relative flex items-center justify-between">
-            <div className="space-y-2">
+            <div className="space-y-2 max-w-xl">
               <p className="text-amber-400 font-medium animate-slide-down">{greeting}</p>
               <h1 className="text-3xl font-bold animate-slide-up">{user?.name}</h1>
-              <p className="text-white/60 animate-slide-up stagger-1">Here's your lead management overview for today</p>
+              <div className="flex items-start gap-2 text-white/70 animate-slide-up stagger-1">
+                <Sparkles className="h-4 w-4 mt-1 text-amber-400 shrink-0" />
+                <p className="text-sm italic">{quote}</p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <FollowupNotifications leads={myLeads} onViewLead={(lead) => setViewingLead(lead)} />
@@ -98,6 +108,13 @@ const EmployeeDashboard = () => {
             iconClassName="bg-gradient-to-br from-red-500 to-red-600"
             delay={300}
           />
+        </div>
+
+        {/* Attendance, Tasks, and Announcements Row */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <AttendanceCard />
+          <TasksCard />
+          <AnnouncementsCard />
         </div>
 
         {/* Followup Alerts with animation */}

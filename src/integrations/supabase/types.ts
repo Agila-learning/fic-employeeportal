@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          message: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          message: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          message?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      attendance: {
+        Row: {
+          date: string
+          id: string
+          marked_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          date?: string
+          id?: string
+          marked_at?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          date?: string
+          id?: string
+          marked_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_comments: {
         Row: {
           comment: string
@@ -183,6 +234,42 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_by: string
+          assigned_to: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          assigned_to: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          assigned_to?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
