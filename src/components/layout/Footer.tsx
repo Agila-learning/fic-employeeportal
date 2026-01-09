@@ -1,4 +1,4 @@
-import { Building2, Mail, Phone, Globe } from 'lucide-react';
+import { Building2, Mail, Globe } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -28,13 +28,13 @@ const Footer = () => {
               <h4 className="font-semibold text-white text-sm sm:text-base">Quick Links</h4>
               <ul className="space-y-2 text-xs sm:text-sm">
                 <li>
-                  <span className="text-white/60 hover:text-amber-400 transition-colors cursor-pointer">Dashboard</span>
+                  <a href="/employee" className="text-white/60 hover:text-amber-400 transition-colors cursor-pointer">Dashboard</a>
                 </li>
                 <li>
-                  <span className="text-white/60 hover:text-amber-400 transition-colors cursor-pointer">Manage Leads</span>
+                  <a href="/employee/leads" className="text-white/60 hover:text-amber-400 transition-colors cursor-pointer">Manage Leads</a>
                 </li>
                 <li>
-                  <span className="text-white/60 hover:text-amber-400 transition-colors cursor-pointer">Reports</span>
+                  <a href="/employee/add-lead" className="text-white/60 hover:text-amber-400 transition-colors cursor-pointer">Add Lead</a>
                 </li>
               </ul>
             </div>
@@ -45,15 +45,11 @@ const Footer = () => {
               <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                 <li className="flex items-center gap-2 text-white/60">
                   <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400 flex-shrink-0" />
-                  <span className="truncate">info@forgeindia.com</span>
-                </li>
-                <li className="flex items-center gap-2 text-white/60">
-                  <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400 flex-shrink-0" />
-                  <span>+91 98765 43210</span>
+                  <a href="mailto:info@forgeindiaconnect.com" className="truncate hover:text-amber-400 transition-colors">info@forgeindiaconnect.com</a>
                 </li>
                 <li className="flex items-center gap-2 text-white/60">
                   <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400 flex-shrink-0" />
-                  <span className="truncate">www.forgeindia.com</span>
+                  <a href="https://www.forgeindiaconnect.com" target="_blank" rel="noopener noreferrer" className="truncate hover:text-amber-400 transition-colors">www.forgeindiaconnect.com</a>
                 </li>
               </ul>
             </div>
@@ -68,7 +64,7 @@ const Footer = () => {
               © 2026 Forge India Connect Pvt. Ltd. - Shaping Future
             </p>
             <p className="text-white/40 text-[10px] sm:text-xs">
-              All Rights Reserved | Designed with ❤️
+              All Rights Reserved | Designed by IT Team
             </p>
           </div>
         </div>

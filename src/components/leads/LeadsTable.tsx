@@ -157,13 +157,13 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
         <Table>
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-muted/50 to-muted/30 hover:bg-muted/50">
-              <TableHead className="font-semibold">Candidate ID</TableHead>
-              <TableHead className="font-semibold">Name</TableHead>
-              <TableHead className="font-semibold">Contact</TableHead>
-              <TableHead className="font-semibold">Qualification</TableHead>
-              <TableHead className="font-semibold">CTC</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Source</TableHead>
+              <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Candidate ID</TableHead>
+              <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Name</TableHead>
+              <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Contact</TableHead>
+              <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Qualification</TableHead>
+              <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">CTC</TableHead>
+              <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Status</TableHead>
+              <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Source</TableHead>
               <TableHead className="text-right font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
