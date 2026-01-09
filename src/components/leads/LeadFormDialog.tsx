@@ -34,10 +34,28 @@ interface LeadFormDialogProps {
   onSave?: () => void;
 }
 
-const generateCandidateId = () => {
+const generateCandidateId = async (): Promise<string> => {
   const prefix = 'FIC';
-  const number = Math.floor(Math.random() * 90000) + 10000;
-  return `${prefix}${number}`;
+  let candidateId = '';
+  let isUnique = false;
+  
+  while (!isUnique) {
+    const number = Math.floor(Math.random() * 90000) + 10000;
+    candidateId = `${prefix}${number}`;
+    
+    // Check if this ID already exists
+    const { data } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('candidate_id', candidateId)
+      .maybeSingle();
+    
+    if (!data) {
+      isUnique = true;
+    }
+  }
+  
+  return candidateId;
 };
 
 const REJECTION_STATUSES: LeadStatus[] = ['rejected', 'not_interested', 'not_interested_paid', 'different_domain'];
@@ -98,21 +116,24 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
       });
       setPreviousStatus(lead.status);
     } else {
-      setFormData({
-        candidate_id: generateCandidateId(),
-        name: '',
-        email: '',
-        phone: '',
-        qualification: '',
-        past_experience: '',
-        current_ctc: '',
-        expected_ctc: '',
-        status: 'nc1',
-        source: 'social_media',
-        notes: '',
-        resume_url: '',
-        followup_date: '',
-        payment_slip_url: '',
+      // Generate unique candidate ID
+      generateCandidateId().then(uniqueId => {
+        setFormData({
+          candidate_id: uniqueId,
+          name: '',
+          email: '',
+          phone: '',
+          qualification: '',
+          past_experience: '',
+          current_ctc: '',
+          expected_ctc: '',
+          status: 'nc1',
+          source: 'social_media',
+          notes: '',
+          resume_url: '',
+          followup_date: '',
+          payment_slip_url: '',
+        });
       });
       setPreviousStatus(null);
     }
@@ -612,6 +633,27 @@ const LeadForm = ({
       </div>
     </div>
 
+    {/* Follow-up Date - Show when status is follow_up */}
+    {(formData.status === 'follow_up' || formData.followup_date) && (
+      <div className="space-y-2 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+        <Label htmlFor="followup_date" className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+          <Calendar className="h-4 w-4" />
+          Follow-up Date & Time {formData.status === 'follow_up' && <span className="text-red-500">*</span>}
+        </Label>
+        <Input
+          id="followup_date"
+          type="datetime-local"
+          value={formData.followup_date}
+          onChange={(e) => setFormData((prev: any) => ({ ...prev, followup_date: e.target.value }))}
+          disabled={isViewMode}
+          className="bg-white dark:bg-slate-800"
+        />
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          You will be notified on this date to follow up with the candidate.
+        </p>
+      </div>
+    )}
+
     {/* Rejection Reason Warning */}
     {showRejectionWarning && (
       <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
@@ -633,21 +675,6 @@ const LeadForm = ({
         </div>
       </div>
     )}
-
-    {/* Follow-up Date */}
-    <div className="space-y-2">
-      <Label htmlFor="followup_date" className="flex items-center gap-2">
-        <Calendar className="h-4 w-4" />
-        Follow-up Date & Time
-      </Label>
-      <Input
-        id="followup_date"
-        type="datetime-local"
-        value={formData.followup_date}
-        onChange={(e) => setFormData((prev: any) => ({ ...prev, followup_date: e.target.value }))}
-        disabled={isViewMode}
-      />
-    </div>
 
     {/* Resume Upload */}
     <div className="space-y-2">

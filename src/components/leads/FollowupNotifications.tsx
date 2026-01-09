@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Lead, STATUS_OPTIONS } from '@/types';
 import { format, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
 import { Bell, Calendar, User, X } from 'lucide-react';
@@ -12,6 +12,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { playNotificationSound } from '@/utils/notificationSound';
 
 interface FollowupNotificationsProps {
   leads: Lead[];
@@ -28,9 +29,10 @@ const FollowupNotifications = ({ leads, onViewLead }: FollowupNotificationsProps
   const [open, setOpen] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const prevUrgentCount = useRef(0);
 
   useEffect(() => {
-    const followupLeads = leads.filter(l => l.followup_date);
+    const followupLeads = leads.filter(l => l.followup_date && l.status === 'follow_up');
     const notificationItems: NotificationItem[] = [];
 
     followupLeads.forEach(lead => {
@@ -66,7 +68,17 @@ const FollowupNotifications = ({ leads, onViewLead }: FollowupNotificationsProps
     });
 
     setNotifications(notificationItems);
-    setHasNewNotifications(notificationItems.some(n => n.type === 'today' || n.type === 'overdue'));
+    
+    const urgentCount = notificationItems.filter(n => n.type === 'today' || n.type === 'overdue').length;
+    const hasUrgent = urgentCount > 0;
+    
+    // Play sound only if there are new urgent notifications
+    if (urgentCount > prevUrgentCount.current) {
+      playNotificationSound('warning');
+    }
+    prevUrgentCount.current = urgentCount;
+    
+    setHasNewNotifications(hasUrgent);
   }, [leads]);
 
   const getTypeStyles = (type: NotificationItem['type']) => {

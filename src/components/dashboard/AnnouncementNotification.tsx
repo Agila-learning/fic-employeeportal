@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 import { Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { playNotificationSound } from '@/utils/notificationSound';
 
 const AnnouncementNotification = () => {
   const { announcements } = useAnnouncements();
@@ -17,6 +18,7 @@ const AnnouncementNotification = () => {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
   const [isOpen, setIsOpen] = useState(false);
+  const prevUnreadCount = useRef(0);
 
   const activeAnnouncements = announcements.filter(a => a.is_active);
   const unreadCount = activeAnnouncements.filter(a => !readIds.has(a.id)).length;
@@ -24,6 +26,14 @@ const AnnouncementNotification = () => {
   useEffect(() => {
     localStorage.setItem('readAnnouncementIds', JSON.stringify([...readIds]));
   }, [readIds]);
+
+  // Play sound for new announcements
+  useEffect(() => {
+    if (unreadCount > prevUnreadCount.current && prevUnreadCount.current !== 0) {
+      playNotificationSound('info');
+    }
+    prevUnreadCount.current = unreadCount;
+  }, [unreadCount]);
 
   const markAsRead = (id: string) => {
     setReadIds(prev => new Set([...prev, id]));
