@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useLeads } from '@/contexts/LeadsContext';
+import { useLeads } from '@/hooks/useLeads';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LeadsTable from '@/components/leads/LeadsTable';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Plus } from 'lucide-react';
 
 const EmployeeLeads = () => {
   const { user } = useAuth();
-  const { getLeadsByEmployee } = useLeads();
+  const { leads, refetchLeads, getLeadsByEmployee } = useLeads();
 
   const myLeads = user ? getLeadsByEmployee(user.id) : [];
 
@@ -27,7 +27,7 @@ const EmployeeLeads = () => {
             </Button>
           </Link>
         </div>
-        <LeadsTable leads={myLeads} />
+        <LeadsTable leads={myLeads} onRefresh={refetchLeads} />
       </div>
     </DashboardLayout>
   );

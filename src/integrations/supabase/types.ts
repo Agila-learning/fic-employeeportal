@@ -93,10 +93,12 @@ export type Database = {
           current_ctc: string | null
           email: string
           expected_ctc: string | null
+          followup_date: string | null
           id: string
           name: string
           notes: string | null
           past_experience: string | null
+          payment_slip_url: string | null
           phone: string
           qualification: string | null
           resume_url: string | null
@@ -112,10 +114,12 @@ export type Database = {
           current_ctc?: string | null
           email: string
           expected_ctc?: string | null
+          followup_date?: string | null
           id?: string
           name: string
           notes?: string | null
           past_experience?: string | null
+          payment_slip_url?: string | null
           phone: string
           qualification?: string | null
           resume_url?: string | null
@@ -131,10 +135,12 @@ export type Database = {
           current_ctc?: string | null
           email?: string
           expected_ctc?: string | null
+          followup_date?: string | null
           id?: string
           name?: string
           notes?: string | null
           past_experience?: string | null
+          payment_slip_url?: string | null
           phone?: string
           qualification?: string | null
           resume_url?: string | null

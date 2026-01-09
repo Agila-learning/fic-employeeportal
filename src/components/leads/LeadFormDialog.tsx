@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Lead, LeadStatus, LeadSource, STATUS_OPTIONS, SOURCE_OPTIONS, LeadComment, LeadStatusHistory } from '@/types';
+import { Lead, LeadStatus, LeadSource, STATUS_OPTIONS, SOURCE_OPTIONS } from '@/types';
 import { useLeads, useLeadComments, useLeadStatusHistory } from '@/hooks/useLeads';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Upload, MessageSquare, History, Send, Clock } from 'lucide-react';
+import { Upload, MessageSquare, History, Send, Clock, Calendar, CreditCard, FileImage, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface LeadFormDialogProps {
@@ -39,10 +40,13 @@ const generateCandidateId = () => {
   return `${prefix}${number}`;
 };
 
+const REJECTION_STATUSES: LeadStatus[] = ['rejected', 'not_interested', 'not_interested_paid', 'different_domain'];
+
 const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDialogProps) => {
   const { addLead, updateLead } = useLeads();
   const { user } = useAuth();
   const isViewMode = mode === 'view';
+  const isAdmin = user?.role === 'admin';
 
   const [formData, setFormData] = useState({
     candidate_id: '',
@@ -57,10 +61,18 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     source: 'social_media' as LeadSource,
     notes: '',
     resume_url: '',
+    followup_date: '',
+    payment_slip_url: '',
   });
 
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previousStatus, setPreviousStatus] = useState<LeadStatus | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectionWarning, setShowRejectionWarning] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [paymentSlipFile, setPaymentSlipFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch comments and history if viewing
   const { comments, addComment, isLoading: commentsLoading } = useLeadComments(lead?.id || '');
@@ -81,7 +93,10 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
         source: lead.source,
         notes: lead.notes || '',
         resume_url: lead.resume_url || '',
+        followup_date: lead.followup_date ? format(new Date(lead.followup_date), "yyyy-MM-dd'T'HH:mm") : '',
+        payment_slip_url: lead.payment_slip_url || '',
       });
+      setPreviousStatus(lead.status);
     } else {
       setFormData({
         candidate_id: generateCandidateId(),
@@ -96,9 +111,49 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
         source: 'social_media',
         notes: '',
         resume_url: '',
+        followup_date: '',
+        payment_slip_url: '',
       });
+      setPreviousStatus(null);
     }
+    setRejectionReason('');
+    setShowRejectionWarning(false);
+    setResumeFile(null);
+    setPaymentSlipFile(null);
   }, [lead, open]);
+
+  // Check if status changed to rejection status
+  useEffect(() => {
+    if (previousStatus && formData.status !== previousStatus && REJECTION_STATUSES.includes(formData.status)) {
+      setShowRejectionWarning(true);
+    } else {
+      setShowRejectionWarning(false);
+    }
+  }, [formData.status, previousStatus]);
+
+  const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user?.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error(`Error uploading to ${bucket}:`, error);
+      toast.error(`Failed to upload file: ${error.message}`);
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,18 +163,54 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
       return;
     }
 
+    // Check if rejection status requires a comment/reason
+    if (REJECTION_STATUSES.includes(formData.status) && mode === 'edit' && previousStatus !== formData.status) {
+      if (!rejectionReason.trim()) {
+        toast.error('Please provide a reason for rejection in the comments');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
+    setIsUploading(true);
 
     try {
+      let resumeUrl = formData.resume_url;
+      let paymentSlipUrl = formData.payment_slip_url;
+
+      // Upload resume if selected
+      if (resumeFile) {
+        const uploadedUrl = await uploadFile(resumeFile, 'resumes');
+        if (uploadedUrl) resumeUrl = uploadedUrl;
+      }
+
+      // Upload payment slip if selected
+      if (paymentSlipFile) {
+        const uploadedUrl = await uploadFile(paymentSlipFile, 'payment-slips');
+        if (uploadedUrl) paymentSlipUrl = uploadedUrl;
+      }
+
+      const dataToSave = {
+        ...formData,
+        resume_url: resumeUrl,
+        payment_slip_url: paymentSlipUrl,
+        followup_date: formData.followup_date ? new Date(formData.followup_date).toISOString() : null,
+      };
+
       if (mode === 'add') {
-        const result = await addLead(formData);
+        const result = await addLead(dataToSave);
         if (result) {
           toast.success('Lead added successfully');
           onSave?.();
           onOpenChange(false);
         }
       } else if (mode === 'edit' && lead) {
-        const success = await updateLead(lead.id, formData, lead.status);
+        // Add rejection comment if status changed to rejected
+        if (REJECTION_STATUSES.includes(formData.status) && previousStatus !== formData.status && rejectionReason.trim()) {
+          await addComment(`Status changed to ${STATUS_OPTIONS.find(s => s.value === formData.status)?.label}: ${rejectionReason}`);
+        }
+
+        const success = await updateLead(lead.id, dataToSave, lead.status);
         if (success) {
           toast.success('Lead updated successfully');
           onSave?.();
@@ -128,6 +219,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
       }
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -141,11 +233,19 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResumeSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData(prev => ({ ...prev, resume_url: file.name }));
+      setResumeFile(file);
       toast.success('Resume selected: ' + file.name);
+    }
+  };
+
+  const handlePaymentSlipSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPaymentSlipFile(file);
+      toast.success('Payment slip selected: ' + file.name);
     }
   };
 
@@ -182,11 +282,20 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
                   formData={formData}
                   setFormData={setFormData}
                   isViewMode={isViewMode}
+                  isAdmin={isAdmin}
                   mode={mode}
                   handleSubmit={handleSubmit}
-                  handleFileUpload={handleFileUpload}
+                  handleResumeSelect={handleResumeSelect}
+                  handlePaymentSlipSelect={handlePaymentSlipSelect}
+                  resumeFile={resumeFile}
+                  paymentSlipFile={paymentSlipFile}
                   isSubmitting={isSubmitting}
+                  isUploading={isUploading}
                   onOpenChange={onOpenChange}
+                  showRejectionWarning={showRejectionWarning}
+                  rejectionReason={rejectionReason}
+                  setRejectionReason={setRejectionReason}
+                  lead={lead}
                 />
               </ScrollArea>
             </TabsContent>
@@ -228,7 +337,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
                     rows={2}
                     className="flex-1"
                   />
-                  <Button onClick={handleAddComment} size="icon" className="gradient-primary self-end">
+                  <Button onClick={handleAddComment} size="icon" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 self-end">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -287,11 +396,19 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
               formData={formData}
               setFormData={setFormData}
               isViewMode={false}
+              isAdmin={isAdmin}
               mode={mode}
               handleSubmit={handleSubmit}
-              handleFileUpload={handleFileUpload}
+              handleResumeSelect={handleResumeSelect}
+              handlePaymentSlipSelect={handlePaymentSlipSelect}
+              resumeFile={resumeFile}
+              paymentSlipFile={paymentSlipFile}
               isSubmitting={isSubmitting}
+              isUploading={isUploading}
               onOpenChange={onOpenChange}
+              showRejectionWarning={false}
+              rejectionReason=""
+              setRejectionReason={() => {}}
             />
           </ScrollArea>
         )}
@@ -304,15 +421,58 @@ interface LeadFormProps {
   formData: any;
   setFormData: React.Dispatch<React.SetStateAction<any>>;
   isViewMode: boolean;
+  isAdmin: boolean;
   mode: 'add' | 'edit' | 'view';
   handleSubmit: (e: React.FormEvent) => void;
-  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleResumeSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handlePaymentSlipSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  resumeFile: File | null;
+  paymentSlipFile: File | null;
   isSubmitting: boolean;
+  isUploading: boolean;
   onOpenChange: (open: boolean) => void;
+  showRejectionWarning: boolean;
+  rejectionReason: string;
+  setRejectionReason: (reason: string) => void;
+  lead?: Lead;
 }
 
-const LeadForm = ({ formData, setFormData, isViewMode, mode, handleSubmit, handleFileUpload, isSubmitting, onOpenChange }: LeadFormProps) => (
+const LeadForm = ({ 
+  formData, 
+  setFormData, 
+  isViewMode, 
+  isAdmin,
+  mode, 
+  handleSubmit, 
+  handleResumeSelect,
+  handlePaymentSlipSelect,
+  resumeFile,
+  paymentSlipFile,
+  isSubmitting, 
+  isUploading,
+  onOpenChange,
+  showRejectionWarning,
+  rejectionReason,
+  setRejectionReason,
+  lead
+}: LeadFormProps) => (
   <form onSubmit={handleSubmit} className="space-y-6 py-4">
+    {/* Lead Created Info */}
+    {lead && (
+      <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 text-sm">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Created:</span>
+          <span className="font-medium">{format(new Date(lead.created_at), 'MMM d, yyyy h:mm a')}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Updated:</span>
+          <span className="font-medium">{format(new Date(lead.updated_at), 'MMM d, yyyy h:mm a')}</span>
+        </div>
+      </div>
+    )}
+
     {/* Candidate ID */}
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
@@ -320,7 +480,8 @@ const LeadForm = ({ formData, setFormData, isViewMode, mode, handleSubmit, handl
         <Input
           id="candidate_id"
           value={formData.candidate_id}
-          disabled
+          onChange={(e) => isAdmin && setFormData((prev: any) => ({ ...prev, candidate_id: e.target.value }))}
+          disabled={!isAdmin || isViewMode}
           className="bg-muted font-mono"
         />
       </div>
@@ -451,6 +612,43 @@ const LeadForm = ({ formData, setFormData, isViewMode, mode, handleSubmit, handl
       </div>
     </div>
 
+    {/* Rejection Reason Warning */}
+    {showRejectionWarning && (
+      <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-medium text-red-700 dark:text-red-400">Rejection Reason Required</p>
+            <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
+              Please provide a reason for changing status to rejection.
+            </p>
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter the reason for rejection..."
+              className="mt-3"
+              rows={2}
+            />
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Follow-up Date */}
+    <div className="space-y-2">
+      <Label htmlFor="followup_date" className="flex items-center gap-2">
+        <Calendar className="h-4 w-4" />
+        Follow-up Date & Time
+      </Label>
+      <Input
+        id="followup_date"
+        type="datetime-local"
+        value={formData.followup_date}
+        onChange={(e) => setFormData((prev: any) => ({ ...prev, followup_date: e.target.value }))}
+        disabled={isViewMode}
+      />
+    </div>
+
     {/* Resume Upload */}
     <div className="space-y-2">
       <Label>Resume</Label>
@@ -460,23 +658,67 @@ const LeadForm = ({ formData, setFormData, isViewMode, mode, handleSubmit, handl
             <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 transition-colors hover:border-primary hover:bg-muted/50">
               <Upload className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {formData.resume_url || 'Click to upload resume'}
+                {resumeFile?.name || formData.resume_url || 'Click to upload resume'}
               </span>
             </div>
             <input
               type="file"
               className="hidden"
               accept=".pdf,.doc,.docx"
-              onChange={handleFileUpload}
+              onChange={handleResumeSelect}
             />
           </label>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          {formData.resume_url || 'No resume uploaded'}
-        </p>
+        <div className="text-sm">
+          {formData.resume_url ? (
+            <a href={formData.resume_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              View Resume
+            </a>
+          ) : (
+            <span className="text-muted-foreground">No resume uploaded</span>
+          )}
+        </div>
       )}
     </div>
+
+    {/* Payment Slip Upload - Only show for converted status */}
+    {(formData.status === 'converted' || formData.payment_slip_url) && (
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4" />
+          Payment Slip / Screenshot
+        </Label>
+        {!isViewMode ? (
+          <div className="flex items-center gap-4">
+            <label className="flex-1 cursor-pointer">
+              <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-green-300 dark:border-green-800 p-4 transition-colors hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30">
+                <FileImage className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <span className="text-sm text-green-600 dark:text-green-400">
+                  {paymentSlipFile?.name || formData.payment_slip_url || 'Click to upload payment slip'}
+                </span>
+              </div>
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={handlePaymentSlipSelect}
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="text-sm">
+            {formData.payment_slip_url ? (
+              <a href={formData.payment_slip_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                View Payment Slip
+              </a>
+            ) : (
+              <span className="text-muted-foreground">No payment slip uploaded</span>
+            )}
+          </div>
+        )}
+      </div>
+    )}
 
     {/* Notes */}
     <div className="space-y-2">
@@ -497,9 +739,13 @@ const LeadForm = ({ formData, setFormData, isViewMode, mode, handleSubmit, handl
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>
-        <Button type="submit" className="gradient-primary" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+        <Button 
+          type="submit" 
+          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700" 
+          disabled={isSubmitting || isUploading}
+        >
+          {isSubmitting || isUploading ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           ) : (
             mode === 'add' ? 'Add Lead' : 'Save Changes'
           )}

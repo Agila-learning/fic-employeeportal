@@ -52,6 +52,9 @@ export const useLeads = () => {
           status: leadData.status || 'nc1',
           source: leadData.source || 'other',
           notes: leadData.notes,
+          resume_url: leadData.resume_url,
+          followup_date: leadData.followup_date,
+          payment_slip_url: leadData.payment_slip_url,
           assigned_to: user.id,
           created_by: user.id,
         })

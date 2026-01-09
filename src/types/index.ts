@@ -18,6 +18,8 @@ export interface Lead {
   source: LeadSource;
   resume_url: string | null;
   notes: string | null;
+  followup_date: string | null;
+  payment_slip_url: string | null;
   assigned_to: string | null;
   created_by: string | null;
   created_at: string;

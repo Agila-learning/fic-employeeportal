@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import Footer from './Footer';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -19,21 +20,23 @@ const DashboardLayout = ({ children, requiredRole }: DashboardLayoutProps) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace />;
+  // Admin can access both dashboards, but employees can only access employee dashboard
+  if (requiredRole === 'admin' && user.role !== 'admin') {
+    return <Navigate to="/employee" replace />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Sidebar />
-      <main className="ml-64 min-h-screen p-6">
+      <main className="ml-64 flex-1 p-6">
         <div className="animate-fade-in">
           {children}
         </div>
       </main>
+      <Footer />
     </div>
   );
 };
