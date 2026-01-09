@@ -51,7 +51,7 @@ const StatsCard = ({ title, value, icon: Icon, trend, className, iconClassName, 
   return (
     <div 
       className={cn(
-        "group relative rounded-xl bg-card p-4 border border-border/50 overflow-hidden",
+        "group relative rounded-xl bg-card p-3 sm:p-4 border border-border/50 overflow-hidden",
         "transition-all duration-500 ease-out",
         "hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10",
         "hover:border-primary/30",
@@ -64,26 +64,26 @@ const StatsCard = ({ title, value, icon: Icon, trend, className, iconClassName, 
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       {/* Animated corner accent */}
-      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full transform translate-x-6 -translate-y-6 group-hover:translate-x-3 group-hover:-translate-y-3 transition-transform duration-500" />
+      <div className="absolute top-0 right-0 w-12 sm:w-16 h-12 sm:h-16 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full transform translate-x-4 sm:translate-x-6 -translate-y-4 sm:-translate-y-6 group-hover:translate-x-2 sm:group-hover:translate-x-3 group-hover:-translate-y-2 sm:group-hover:-translate-y-3 transition-transform duration-500" />
 
-      <div className="relative flex items-center justify-between gap-3">
-        <div className="space-y-1 min-w-0">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{title}</p>
-          <p className="text-2xl font-bold text-foreground counter">
+      <div className="relative flex items-center justify-between gap-2 sm:gap-3">
+        <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{title}</p>
+          <p className="text-lg sm:text-2xl font-bold text-foreground counter">
             {isPercentage ? `${displayValue}%` : displayValue}
           </p>
           {trend && (
             <div className={cn(
-              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold",
+              "inline-flex items-center gap-1 px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold",
               trend.isPositive 
                 ? "bg-success/10 text-success" 
                 : "bg-destructive/10 text-destructive"
             )}>
               <span className={cn(
-                "w-0 h-0 border-l-[3px] border-r-[3px] border-transparent",
+                "w-0 h-0 border-l-[2px] sm:border-l-[3px] border-r-[2px] sm:border-r-[3px] border-transparent",
                 trend.isPositive 
-                  ? "border-b-[3px] border-b-success" 
-                  : "border-t-[3px] border-t-destructive"
+                  ? "border-b-[2px] sm:border-b-[3px] border-b-success" 
+                  : "border-t-[2px] sm:border-t-[3px] border-t-destructive"
               )} />
               {trend.isPositive ? '+' : ''}{trend.value}%
             </div>
@@ -91,11 +91,11 @@ const StatsCard = ({ title, value, icon: Icon, trend, className, iconClassName, 
         </div>
         
         <div className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-500 shrink-0",
+          "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-all duration-500 shrink-0",
           "group-hover:scale-110 group-hover:shadow-lg",
           iconClassName || "bg-gradient-to-br from-primary to-primary/80"
         )}>
-          <Icon className="h-5 w-5 text-white transition-transform duration-500 group-hover:scale-110" />
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white transition-transform duration-500 group-hover:scale-110" />
         </div>
       </div>
     </div>

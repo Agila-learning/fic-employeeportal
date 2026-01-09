@@ -51,30 +51,31 @@ const EmployeeDashboard = () => {
 
   return (
     <DashboardLayout requiredRole="employee">
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8">
         {/* Header with gradient background */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-white animate-fade-in">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-6 md:p-8 text-white animate-fade-in">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
           <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
           <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-blue-500/20 blur-3xl" />
           
-          <div className="relative flex items-center justify-between">
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-2 max-w-xl">
-              <p className="text-amber-400 font-medium animate-slide-down">{greeting}</p>
-              <h1 className="text-3xl font-bold animate-slide-up">{user?.name}</h1>
-              <div className="flex items-start gap-2 text-white/70 animate-slide-up stagger-1">
+              <p className="text-amber-400 font-medium animate-float-in">{greeting}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold animate-float-in-delay">{user?.name}</h1>
+              <div className="flex items-start gap-2 text-white/70 animate-float-in-delay-2">
                 <Sparkles className="h-4 w-4 mt-1 text-amber-400 shrink-0" />
-                <p className="text-sm italic">{quote}</p>
+                <p className="text-xs sm:text-sm italic">{quote}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
               <AnnouncementNotification />
               <TaskRemindersNotification />
               <FollowupNotifications leads={myLeads} onViewLead={(lead) => setViewingLead(lead)} />
-              <Link to="/employee/add-lead">
-                <Button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 gap-2 shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-105">
+              <Link to="/employee/add-lead" className="w-full sm:w-auto">
+                <Button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 gap-2 shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-105 w-full sm:w-auto text-sm sm:text-base">
                   <Plus className="h-4 w-4" />
-                  Add New Lead
+                  <span className="hidden xs:inline">Add New Lead</span>
+                  <span className="xs:hidden">Add Lead</span>
                 </Button>
               </Link>
             </div>
@@ -82,7 +83,7 @@ const EmployeeDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
           <StatsCard 
             title="Total Leads" 
             value={totalLeads} 
@@ -115,7 +116,7 @@ const EmployeeDashboard = () => {
         </div>
 
         {/* Attendance, Tasks, and Announcements Row */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <AttendanceCard />
           <TasksCard />
           <AnnouncementsCard />
@@ -124,29 +125,29 @@ const EmployeeDashboard = () => {
         {/* Followup Alerts with animation */}
         {followupLeads.length > 0 && (
           <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-950/30 dark:to-orange-950/20 overflow-hidden animate-scale-in">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                <Bell className="h-5 w-5 animate-bounce-soft" />
-                Upcoming Follow-ups
-                <span className="ml-2 px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold">
+            <CardHeader className="pb-2 px-4 sm:px-6">
+              <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5 animate-bounce-soft" />
+                <span className="truncate">Upcoming Follow-ups</span>
+                <span className="ml-auto sm:ml-2 px-2 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold shrink-0">
                   {followupLeads.length}
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <CardContent className="px-4 sm:px-6">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {followupLeads.slice(0, 6).map((lead, index) => (
                   <div 
                     key={lead.id} 
-                    className="flex items-center justify-between p-4 rounded-xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                    className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                     onClick={() => setViewingLead(lead)}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{lead.candidate_id}</p>
+                    <div className="min-w-0 flex-1 mr-2">
+                      <p className="font-medium truncate text-sm sm:text-base">{lead.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono truncate">{lead.candidate_id}</p>
                     </div>
-                    <div className="text-xs text-amber-600 dark:text-amber-400 font-semibold bg-amber-100 dark:bg-amber-900/50 px-2 py-1 rounded-full">
+                    <div className="text-xs text-amber-600 dark:text-amber-400 font-semibold bg-amber-100 dark:bg-amber-900/50 px-2 py-1 rounded-full shrink-0">
                       {lead.followup_date && new Date(lead.followup_date).toLocaleDateString()}
                     </div>
                   </div>
@@ -157,29 +158,29 @@ const EmployeeDashboard = () => {
         )}
 
         {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
           {/* Recent Leads */}
           <Card className="border-border/50 overflow-hidden group hover:shadow-xl transition-all duration-500 hover:border-primary/20 animate-slide-up stagger-1">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-muted/30">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-muted/30 px-3 sm:px-6">
+              <CardTitle className="text-sm sm:text-lg font-semibold flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 Recent Leads
               </CardTitle>
               <Link to="/employee/leads">
-                <Button variant="ghost" size="sm" className="gap-1 group/btn">
+                <Button variant="ghost" size="sm" className="gap-1 group/btn text-xs sm:text-sm h-7 sm:h-8">
                   View All
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                  <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover/btn:translate-x-1" />
                 </Button>
               </Link>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/50">
                 {recentLeads.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileSpreadsheet className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                    <p className="text-muted-foreground">No leads yet. Start by adding your first lead!</p>
+                  <div className="text-center py-8 sm:py-12 px-4">
+                    <FileSpreadsheet className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground/50 mb-3" />
+                    <p className="text-sm sm:text-base text-muted-foreground">No leads yet. Start by adding your first lead!</p>
                     <Link to="/employee/add-lead" className="mt-4 inline-block">
-                      <Button variant="outline" size="sm" className="gap-2">
+                      <Button variant="outline" size="sm" className="gap-2 text-xs sm:text-sm">
                         <Plus className="h-4 w-4" />
                         Add Lead
                       </Button>
@@ -188,16 +189,16 @@ const EmployeeDashboard = () => {
                 ) : recentLeads.map((lead, index) => (
                   <div 
                     key={lead.id} 
-                    className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-all duration-300 cursor-pointer group/lead"
+                    className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4 hover:bg-muted/50 transition-all duration-300 cursor-pointer group/lead"
                     onClick={() => setViewingLead(lead)}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover/lead:bg-primary/20 group-hover/lead:scale-110 transition-all duration-300">
-                      <span className="text-sm font-bold text-primary">{lead.name.split(' ').map(n => n[0]).join('')}</span>
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-primary/10 group-hover/lead:bg-primary/20 group-hover/lead:scale-110 transition-all duration-300 shrink-0">
+                      <span className="text-xs sm:text-sm font-bold text-primary">{lead.name.split(' ').map(n => n[0]).join('')}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate group-hover/lead:text-primary transition-colors">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{lead.candidate_id}</p>
+                      <p className="font-medium truncate group-hover/lead:text-primary transition-colors text-sm sm:text-base">{lead.name}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground font-mono truncate">{lead.candidate_id}</p>
                     </div>
                     <LeadStatusBadge status={lead.status} />
                   </div>
@@ -208,28 +209,28 @@ const EmployeeDashboard = () => {
 
           {/* Lead Status Distribution */}
           <Card className="border-border/50 overflow-hidden group hover:shadow-xl transition-all duration-500 hover:border-primary/20 animate-slide-up stagger-2">
-            <CardHeader className="border-b border-border/50 bg-muted/30">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            <CardHeader className="border-b border-border/50 bg-muted/30 px-3 sm:px-6">
+              <CardTitle className="text-sm sm:text-lg font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 Your Lead Status
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-3 sm:space-y-4">
                 {statusDistribution.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No leads to show distribution</p>
+                  <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm">No leads to show distribution</p>
                 ) : statusDistribution.map((status, index) => {
                   const percentage = totalLeads > 0 ? (status.count / totalLeads) * 100 : 0;
                   return (
                     <div key={status.value} className="group/item" style={{ animationDelay: `${index * 100}ms` }}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium group-hover/item:text-primary transition-colors">{status.label}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground font-mono">{status.count}</span>
-                          <span className="text-xs text-muted-foreground">({percentage.toFixed(0)}%)</span>
+                      <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <span className="text-xs sm:text-sm font-medium group-hover/item:text-primary transition-colors truncate">{status.label}</span>
+                        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                          <span className="text-xs sm:text-sm text-muted-foreground font-mono">{status.count}</span>
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">({percentage.toFixed(0)}%)</span>
                         </div>
                       </div>
-                      <div className="h-3 rounded-full bg-muted overflow-hidden">
+                      <div className="h-2 sm:h-3 rounded-full bg-muted overflow-hidden">
                         <div 
                           className={cn(
                             "h-full rounded-full transition-all duration-1000 ease-out",
@@ -247,10 +248,10 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Conversion Rate Display */}
-              <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 border border-green-200 dark:border-green-800">
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 border border-green-200 dark:border-green-800">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-green-700 dark:text-green-400">Your Conversion Rate</span>
-                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">{conversionRate}%</span>
+                  <span className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">Your Conversion Rate</span>
+                  <span className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{conversionRate}%</span>
                 </div>
               </div>
             </CardContent>

@@ -4,7 +4,6 @@ import { useLeads } from '@/hooks/useLeads';
 import { useEmployees } from '@/hooks/useEmployees';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatsCard from '@/components/dashboard/StatsCard';
-import FollowupNotifications from '@/components/leads/FollowupNotifications';
 import LeadFormDialog from '@/components/leads/LeadFormDialog';
 import { Users, FileSpreadsheet, UserCheck, TrendingUp, CheckCircle, Clock, Bell, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,20 +43,17 @@ const AdminDashboard = () => {
 
   return (
     <DashboardLayout requiredRole="admin">
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Welcome back, {user?.name}! Here's your team's overview.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <FollowupNotifications leads={leads} onViewLead={setViewingLead} />
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Admin Dashboard</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">Welcome back, {user?.name}! Here's your team's overview.</p>
           </div>
         </div>
 
         {/* Stats Cards with staggered animation */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
           <StatsCard 
             title="Total Employees" 
             value={employees.length} 

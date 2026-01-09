@@ -198,6 +198,22 @@
     animation: glow 2s ease-in-out infinite alternate;
   }
 
+  /* Float in animations for greeting text */
+  .animate-float-in {
+    animation: floatIn 0.6s ease-out forwards;
+    opacity: 0;
+  }
+  
+  .animate-float-in-delay {
+    animation: floatIn 0.6s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+  
+  .animate-float-in-delay-2 {
+    animation: floatIn 0.6s ease-out 0.4s forwards;
+    opacity: 0;
+  }
+
   /* Staggered animations */
   .stagger-1 { animation-delay: 0.1s; }
   .stagger-2 { animation-delay: 0.2s; }
@@ -389,6 +405,21 @@
   }
   to {
     box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+  }
+}
+
+@keyframes floatIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) translateX(-20px);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-5px) translateX(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
   }
 }
 

@@ -58,47 +58,47 @@ const AttendanceCard = () => {
         todayAttendance?.status === 'present' && "border-green-500/50 bg-gradient-to-br from-green-50/50 to-emerald-50/30 dark:from-green-950/20 dark:to-emerald-950/10",
         todayAttendance?.status === 'absent' && "border-red-500/50 bg-gradient-to-br from-red-50/50 to-rose-50/30 dark:from-red-950/20 dark:to-rose-950/10"
       )}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <CalendarCheck className="h-4 w-4 text-primary" />
-            Today's Attendance
+        <CardHeader className="pb-2 px-3 sm:px-6">
+          <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+            <CalendarCheck className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">Today's Attendance</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-2">
+        <CardContent className="pt-2 px-3 sm:px-6">
           {todayAttendance ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
+                "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full shrink-0",
                 todayAttendance.status === 'present' 
                   ? "bg-green-500/20 text-green-600 dark:text-green-400" 
                   : "bg-red-500/20 text-red-600 dark:text-red-400"
               )}>
                 {todayAttendance.status === 'present' 
-                  ? <CheckCircle className="h-5 w-5" /> 
-                  : <XCircle className="h-5 w-5" />
+                  ? <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" /> 
+                  : <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                 }
               </div>
               <div className="min-w-0">
-                <p className="font-semibold capitalize">
+                <p className="font-semibold capitalize text-sm sm:text-base">
                   {todayAttendance.status === 'present' ? 'Present' : 'On Leave'}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                   Marked at {new Date(todayAttendance.marked_at).toLocaleTimeString()}
                 </p>
               </div>
             </div>
           ) : isBeforeCutoff ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>{timeRemaining}</span>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                <Clock className="h-3 w-3 shrink-0" />
+                <span className="truncate">{timeRemaining}</span>
               </div>
               <div className="flex gap-2">
                 <Button 
                   onClick={handleMarkPresent}
                   disabled={marking}
                   size="sm"
-                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 gap-1 text-xs"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 gap-1 text-[10px] sm:text-xs h-7 sm:h-8"
                 >
                   <CheckCircle className="h-3 w-3" />
                   Present
@@ -108,7 +108,7 @@ const AttendanceCard = () => {
                   disabled={marking}
                   variant="outline"
                   size="sm"
-                  className="flex-1 border-red-500/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1 text-xs"
+                  className="flex-1 border-red-500/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1 text-[10px] sm:text-xs h-7 sm:h-8"
                 >
                   <XCircle className="h-3 w-3" />
                   Leave
@@ -117,9 +117,9 @@ const AttendanceCard = () => {
             </div>
           ) : (
             <div className="text-center py-2">
-              <XCircle className="h-8 w-8 mx-auto text-muted-foreground mb-1" />
-              <p className="text-sm text-muted-foreground">Window closed</p>
-              <p className="text-xs text-muted-foreground">Mark before 11:00 AM</p>
+              <XCircle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground mb-1" />
+              <p className="text-xs sm:text-sm text-muted-foreground">Window closed</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Mark before 11:00 AM</p>
             </div>
           )}
         </CardContent>

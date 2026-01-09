@@ -23,11 +23,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import LeadStatusBadge from './LeadStatusBadge';
 import LeadFormDialog from './LeadFormDialog';
-import { MoreHorizontal, Pencil, Trash2, Eye, Download, Search, Filter } from 'lucide-react';
+import TypewriterPlaceholder from '@/components/ui/TypewriterPlaceholder';
+import { MoreHorizontal, Pencil, Trash2, Eye, Download, Filter, Search } from 'lucide-react';
 import { toast } from 'sonner';
+
+const SEARCH_PLACEHOLDERS = [
+  'Search by name...',
+  'Search by email...',
+  'Search by candidate ID...',
+  'Search by phone...',
+  'Search by status...',
+];
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -94,16 +102,12 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
     <div className="space-y-4 animate-fade-in">
       {/* Filters */}
       <div className="flex flex-col gap-4 rounded-2xl bg-card p-4 sm:p-5 shadow-sm border border-border/50 hover:shadow-md transition-all duration-300">
-        {/* Search */}
-        <div className="relative w-full group">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <Input
-            placeholder="Search by name, email, ID, or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
+        {/* Search with Typewriter effect */}
+        <TypewriterPlaceholder
+          placeholders={SEARCH_PLACEHOLDERS}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
         
         {/* Filter Row */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">

@@ -42,28 +42,28 @@ const TasksCard = () => {
 
   return (
     <Card className="border-border/50 overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-primary" />
-          My Tasks
+      <CardHeader className="pb-2 px-3 sm:px-6">
+        <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+          <ClipboardList className="h-4 w-4 text-primary shrink-0" />
+          <span className="truncate">My Tasks</span>
           {pendingTasks.length > 0 && (
-            <span className="ml-auto px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+            <span className="ml-auto sm:ml-2 px-1.5 sm:px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] sm:text-xs font-bold shrink-0">
               {pendingTasks.length}
             </span>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-2">
+      <CardContent className="pt-2 px-3 sm:px-6">
         {myTasks.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4 text-sm">No tasks assigned</p>
+          <p className="text-center text-muted-foreground py-4 text-xs sm:text-sm">No tasks assigned</p>
         ) : (
-          <ScrollArea className="h-[180px] pr-2">
+          <ScrollArea className="h-[160px] sm:h-[180px] pr-2">
             <div className="space-y-2">
               {myTasks.map((task) => (
                 <div 
                   key={task.id} 
                   className={cn(
-                    "p-3 rounded-lg border transition-all duration-300",
+                    "p-2 sm:p-3 rounded-lg border transition-all duration-300",
                     task.status === 'completed' 
                       ? "bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-800" 
                       : "bg-muted/30 border-border/50 hover:bg-muted/50"
@@ -73,19 +73,19 @@ const TasksCard = () => {
                     <div className="pt-0.5">{getStatusIcon(task.status)}</div>
                     <div className="flex-1 min-w-0 space-y-1">
                       <h4 className={cn(
-                        "font-medium text-sm leading-tight",
+                        "font-medium text-xs sm:text-sm leading-tight line-clamp-1",
                         task.status === 'completed' && "line-through text-muted-foreground"
                       )}>
                         {task.title}
                       </h4>
                       {task.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                           {task.description}
                         </p>
                       )}
-                      <div className="flex items-center justify-between gap-2 pt-1">
+                      <div className="flex items-center justify-between gap-1 sm:gap-2 pt-1 flex-wrap">
                         {task.due_date && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">
                             Due: {new Date(task.due_date).toLocaleDateString()}
                           </p>
                         )}
@@ -94,9 +94,9 @@ const TasksCard = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => updateTaskStatus(task.id, getNextStatus(task.status))}
-                            className="h-6 px-2 text-xs ml-auto"
+                            className="h-5 sm:h-6 px-1.5 sm:px-2 text-[10px] sm:text-xs ml-auto"
                           >
-                            {task.status === 'pending' ? 'Start' : 'Complete'}
+                            {task.status === 'pending' ? 'Start' : 'Done'}
                           </Button>
                         )}
                       </div>
