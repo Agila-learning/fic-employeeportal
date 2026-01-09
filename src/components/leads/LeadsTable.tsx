@@ -91,23 +91,23 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl bg-card p-4 shadow-sm border border-border/50">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-card p-5 shadow-sm border border-border/50 hover:shadow-md transition-all duration-300">
+        <div className="relative flex-1 min-w-[200px] group">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             placeholder="Search by name, email, ID, or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-primary/20"
           />
         </div>
         
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] transition-all duration-300 hover:border-primary/50">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -122,7 +122,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
         </div>
 
         <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[150px] transition-all duration-300 hover:border-primary/50">
             <SelectValue placeholder="Filter by source" />
           </SelectTrigger>
           <SelectContent>
@@ -135,22 +135,24 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
           </SelectContent>
         </Select>
 
-        <Button onClick={exportToExcel} variant="outline" className="gap-2">
+        <Button onClick={exportToExcel} variant="outline" className="gap-2 hover:bg-primary hover:text-primary-foreground transition-all duration-300 hover:shadow-md">
           <Download className="h-4 w-4" />
           Export Excel
         </Button>
       </div>
 
       {/* Results count */}
-      <p className="text-sm text-muted-foreground">
-        Showing {filteredLeads.length} of {leads.length} leads
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing <span className="font-semibold text-foreground">{filteredLeads.length}</span> of <span className="font-semibold text-foreground">{leads.length}</span> leads
+        </p>
+      </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden hover:shadow-lg transition-all duration-500">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50">
+            <TableRow className="bg-gradient-to-r from-muted/50 to-muted/30 hover:bg-muted/50">
               <TableHead className="font-semibold">Candidate ID</TableHead>
               <TableHead className="font-semibold">Name</TableHead>
               <TableHead className="font-semibold">Contact</TableHead>
@@ -165,29 +167,41 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
             {filteredLeads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                  No leads found
+                  <div className="flex flex-col items-center gap-2">
+                    <Search className="h-8 w-8 opacity-50" />
+                    <p>No leads found</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredLeads.map((lead) => (
-                <TableRow key={lead.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="font-mono font-medium text-primary">{lead.candidate_id}</TableCell>
+              filteredLeads.map((lead, index) => (
+                <TableRow 
+                  key={lead.id} 
+                  className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent transition-all duration-300 cursor-pointer"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <TableCell className="font-mono font-medium text-primary group-hover:text-primary/80 transition-colors">{lead.candidate_id}</TableCell>
                   <TableCell>
-                    <div>
-                      <p className="font-medium">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground">{lead.past_experience}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
+                        <span className="text-xs font-bold text-primary">{lead.name.split(' ').map(n => n[0]).join('')}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium group-hover:text-primary transition-colors">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground">{lead.past_experience || '-'}</p>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      <p>{lead.email}</p>
+                    <div className="text-sm space-y-0.5">
+                      <p className="truncate max-w-[150px]">{lead.email}</p>
                       <p className="text-muted-foreground">{lead.phone}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{lead.qualification}</TableCell>
+                  <TableCell className="text-sm">{lead.qualification || '-'}</TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      <p>Current: {lead.current_ctc || '-'}</p>
+                    <div className="text-sm space-y-0.5">
+                      <p>Current: <span className="font-medium">{lead.current_ctc || '-'}</span></p>
                       <p className="text-muted-foreground">Expected: {lead.expected_ctc || '-'}</p>
                     </div>
                   </TableCell>
@@ -200,24 +214,24 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-popover">
-                        <DropdownMenuItem onClick={() => setViewingLead(lead)}>
-                          <Eye className="mr-2 h-4 w-4" />
+                      <DropdownMenuContent align="end" className="bg-popover w-48">
+                        <DropdownMenuItem onClick={() => setViewingLead(lead)} className="gap-2 cursor-pointer">
+                          <Eye className="h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditingLead(lead)}>
-                          <Pencil className="mr-2 h-4 w-4" />
+                        <DropdownMenuItem onClick={() => setEditingLead(lead)} className="gap-2 cursor-pointer">
+                          <Pencil className="h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleDelete(lead.id)}
-                          className="text-destructive focus:text-destructive"
+                          className="text-destructive focus:text-destructive gap-2 cursor-pointer"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

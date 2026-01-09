@@ -1,15 +1,23 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLeads } from '@/hooks/useLeads';
 import { useEmployees } from '@/hooks/useEmployees';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatsCard from '@/components/dashboard/StatsCard';
-import { Users, FileSpreadsheet, UserCheck, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+import FollowupNotifications from '@/components/leads/FollowupNotifications';
+import LeadFormDialog from '@/components/leads/LeadFormDialog';
+import { Users, FileSpreadsheet, UserCheck, TrendingUp, CheckCircle, Clock, Bell, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { STATUS_OPTIONS } from '@/types';
+import { Button } from '@/components/ui/button';
+import { STATUS_OPTIONS, Lead } from '@/types';
+import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
   const { employees } = useEmployees();
-  const { leads } = useLeads();
+  const { leads, refetchLeads } = useLeads();
+  const [viewingLead, setViewingLead] = useState<Lead | null>(null);
 
   const activeEmployees = employees.filter(e => e.is_active).length;
   const totalLeads = leads.length;
@@ -29,61 +37,148 @@ const AdminDashboard = () => {
     total: leads.filter(l => l.assigned_to === emp.user_id).length
   })).sort((a, b) => b.converted - a.converted).slice(0, 5);
 
+  // Get recent leads
+  const recentLeads = [...leads]
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 5);
+
   return (
     <DashboardLayout requiredRole="admin">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your team's performance</p>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between animate-fade-in">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Welcome back, {user?.name}! Here's your team's overview.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <FollowupNotifications leads={leads} onViewLead={setViewingLead} />
+          </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatsCard title="Total Employees" value={employees.length} icon={Users} iconClassName="gradient-primary" />
-          <StatsCard title="Active Employees" value={activeEmployees} icon={UserCheck} iconClassName="gradient-secondary" />
-          <StatsCard title="Total Leads" value={totalLeads} icon={FileSpreadsheet} iconClassName="bg-amber-500" />
-          <StatsCard title="Conversion Rate" value={`${conversionRate}%`} icon={TrendingUp} iconClassName="bg-green-500" />
+        {/* Stats Cards with staggered animation */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <StatsCard 
+            title="Total Employees" 
+            value={employees.length} 
+            icon={Users} 
+            iconClassName="bg-gradient-to-br from-blue-500 to-blue-600"
+            delay={0}
+          />
+          <StatsCard 
+            title="Active Employees" 
+            value={activeEmployees} 
+            icon={UserCheck} 
+            iconClassName="bg-gradient-to-br from-amber-500 to-amber-600"
+            delay={100}
+          />
+          <StatsCard 
+            title="Total Leads" 
+            value={totalLeads} 
+            icon={FileSpreadsheet} 
+            iconClassName="bg-gradient-to-br from-purple-500 to-purple-600"
+            delay={200}
+          />
+          <StatsCard 
+            title="Conversion Rate" 
+            value={`${conversionRate}%`} 
+            icon={TrendingUp} 
+            trend={{ value: conversionRate, isPositive: conversionRate > 0 }}
+            iconClassName="bg-gradient-to-br from-green-500 to-green-600"
+            delay={300}
+          />
         </div>
 
+        {/* Main Content Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border-border/50">
-            <CardHeader><CardTitle className="text-lg font-semibold">Lead Status Distribution</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {statusDistribution.map(status => (
-                  <div key={status.value} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium">{status.label}</span>
-                        <span className="text-sm text-muted-foreground">{status.count}</span>
+          {/* Lead Status Distribution */}
+          <Card className="border-border/50 overflow-hidden group hover:shadow-lg transition-all duration-500 hover:border-primary/20 animate-slide-up stagger-1">
+            <CardHeader className="border-b border-border/50 bg-muted/30">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                Lead Status Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {statusDistribution.map((status, index) => {
+                  const percentage = totalLeads > 0 ? (status.count / totalLeads) * 100 : 0;
+                  return (
+                    <div 
+                      key={status.value} 
+                      className="group/item cursor-pointer"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium group-hover/item:text-primary transition-colors">{status.label}</span>
+                        <span className="text-sm text-muted-foreground font-mono">{status.count}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${totalLeads > 0 ? (status.count / totalLeads) * 100 : 0}%` }} />
+                      <div className="h-3 rounded-full bg-muted overflow-hidden">
+                        <div 
+                          className={cn(
+                            "h-full rounded-full transition-all duration-1000 ease-out",
+                            status.color || "bg-gradient-to-r from-primary to-primary/70"
+                          )}
+                          style={{ 
+                            width: `${percentage}%`,
+                            transitionDelay: `${index * 100}ms`
+                          }} 
+                        />
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
-            <CardHeader><CardTitle className="text-lg font-semibold">Top Performers</CardTitle></CardHeader>
-            <CardContent>
+          {/* Top Performers */}
+          <Card className="border-border/50 overflow-hidden group hover:shadow-lg transition-all duration-500 hover:border-primary/20 animate-slide-up stagger-2">
+            <CardHeader className="border-b border-border/50 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  Top Performers
+                </CardTitle>
+                <Link to="/admin/employees">
+                  <Button variant="ghost" size="sm" className="gap-1 group/btn">
+                    View All
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
               <div className="space-y-4">
                 {employeePerformance.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No employee data yet</p>
                 ) : employeePerformance.map((emp, index) => (
-                  <div key={emp.id} className="flex items-center gap-4">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">{index + 1}</div>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-secondary">
-                      <span className="text-sm font-semibold text-secondary-foreground">{emp.name.split(' ').map(n => n[0]).join('')}</span>
+                  <div 
+                    key={emp.id} 
+                    className="flex items-center gap-4 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all duration-300 hover:scale-[1.02] cursor-pointer group/emp"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <div className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300",
+                      index === 0 ? "bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg shadow-amber-500/30" :
+                      index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700" :
+                      index === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" :
+                      "bg-muted text-muted-foreground"
+                    )}>
+                      {index + 1}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{emp.name}</p>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 shadow-md group-hover/emp:shadow-lg group-hover/emp:scale-105 transition-all duration-300">
+                      <span className="text-sm font-bold text-white">{emp.name.split(' ').map(n => n[0]).join('')}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate group-hover/emp:text-primary transition-colors">{emp.name}</p>
                       <p className="text-xs text-muted-foreground">{emp.total} leads assigned</p>
                     </div>
                     <div className="text-right">
-                      <div className="flex items-center gap-1 text-success"><CheckCircle className="h-4 w-4" /><span className="font-semibold">{emp.converted}</span></div>
+                      <div className="flex items-center gap-1.5 text-success">
+                        <CheckCircle className="h-5 w-5" />
+                        <span className="text-xl font-bold">{emp.converted}</span>
+                      </div>
                       <p className="text-xs text-muted-foreground">converted</p>
                     </div>
                   </div>
@@ -92,7 +187,67 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Activity */}
+        <Card className="border-border/50 overflow-hidden hover:shadow-lg transition-all duration-500 animate-slide-up stagger-3">
+          <CardHeader className="border-b border-border/50 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                Recent Activity
+              </CardTitle>
+              <Link to="/admin/leads">
+                <Button variant="ghost" size="sm" className="gap-1 group/btn">
+                  View All Leads
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              {recentLeads.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No recent activity</p>
+              ) : recentLeads.map((lead, index) => (
+                <div 
+                  key={lead.id} 
+                  className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all duration-300 cursor-pointer hover:scale-[1.01] group/lead"
+                  onClick={() => setViewingLead(lead)}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 group-hover/lead:bg-primary/20 transition-colors">
+                    <span className="text-sm font-bold text-primary">{lead.name.split(' ').map(n => n[0]).join('')}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate group-hover/lead:text-primary transition-colors">{lead.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{lead.candidate_id}</p>
+                  </div>
+                  <div className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium",
+                    STATUS_OPTIONS.find(s => s.value === lead.status)?.color || "bg-muted"
+                  )}>
+                    {STATUS_OPTIONS.find(s => s.value === lead.status)?.label}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(lead.updated_at).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* View Lead Dialog */}
+      {viewingLead && (
+        <LeadFormDialog
+          open={!!viewingLead}
+          onOpenChange={(open) => !open && setViewingLead(null)}
+          lead={viewingLead}
+          mode="view"
+          onSave={refetchLeads}
+        />
+      )}
     </DashboardLayout>
   );
 };
