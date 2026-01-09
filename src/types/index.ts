@@ -3,6 +3,7 @@ import { Database } from '@/integrations/supabase/types';
 export type LeadStatus = Database['public']['Enums']['lead_status'];
 export type LeadSource = Database['public']['Enums']['lead_source'];
 export type PaymentStage = 'registration_done' | 'initial_payment_done' | 'full_payment_done';
+export type InterestedDomain = 'it' | 'non_it' | 'banking';
 export type AppRole = Database['public']['Enums']['app_role'];
 
 export interface Lead {
@@ -22,6 +23,7 @@ export interface Lead {
   followup_date: string | null;
   payment_slip_url: string | null;
   payment_stage: PaymentStage | null;
+  interested_domain: InterestedDomain | null;
   assigned_to: string | null;
   created_by: string | null;
   created_at: string;
@@ -92,6 +94,12 @@ export const PAYMENT_STAGE_OPTIONS: { value: PaymentStage; label: string }[] = [
   { value: 'registration_done', label: 'Registration Done' },
   { value: 'initial_payment_done', label: 'Initial Payment Done' },
   { value: 'full_payment_done', label: 'Full Payment Done' },
+];
+
+export const INTERESTED_DOMAIN_OPTIONS: { value: InterestedDomain; label: string }[] = [
+  { value: 'it', label: 'IT' },
+  { value: 'non_it', label: 'Non-IT' },
+  { value: 'banking', label: 'Banking' },
 ];
 
 export const SOURCE_OPTIONS: { value: LeadSource; label: string }[] = [

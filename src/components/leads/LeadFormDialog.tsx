@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lead, LeadStatus, LeadSource, PaymentStage, STATUS_OPTIONS, SOURCE_OPTIONS, PAYMENT_STAGE_OPTIONS } from '@/types';
+import { Lead, LeadStatus, LeadSource, PaymentStage, InterestedDomain, STATUS_OPTIONS, SOURCE_OPTIONS, PAYMENT_STAGE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
 import { useLeads, useLeadComments, useLeadStatusHistory } from '@/hooks/useLeads';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,6 +82,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     followup_date: '',
     payment_slip_url: '',
     payment_stage: null as PaymentStage | null,
+    interested_domain: 'it' as InterestedDomain,
   });
 
   const [newComment, setNewComment] = useState('');
@@ -115,6 +116,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
         followup_date: lead.followup_date ? format(new Date(lead.followup_date), "yyyy-MM-dd'T'HH:mm") : '',
         payment_slip_url: lead.payment_slip_url || '',
         payment_stage: lead.payment_stage || null,
+        interested_domain: lead.interested_domain || 'it',
       });
       setPreviousStatus(lead.status);
     } else {
@@ -136,6 +138,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
           followup_date: '',
           payment_slip_url: '',
           payment_stage: null,
+          interested_domain: 'it',
         });
       });
       setPreviousStatus(null);
@@ -667,6 +670,30 @@ const LeadForm = ({
             ))}
           </SelectContent>
         </Select>
+      </div>
+    </div>
+
+    {/* Interested Domain */}
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2">
+        Interested Domain <span className="text-red-500">*</span>
+      </Label>
+      <div className="grid grid-cols-3 gap-2">
+        {INTERESTED_DOMAIN_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            disabled={isViewMode}
+            onClick={() => setFormData((prev: any) => ({ ...prev, interested_domain: option.value }))}
+            className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+              formData.interested_domain === option.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border hover:border-primary/50'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
     </div>
 

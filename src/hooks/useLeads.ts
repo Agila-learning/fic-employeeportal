@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Lead, LeadComment, LeadStatusHistory, LeadStatus, LeadSource } from '@/types';
+import { Lead, LeadComment, LeadStatusHistory, LeadStatus, LeadSource, InterestedDomain } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -56,6 +56,7 @@ export const useLeads = () => {
           followup_date: leadData.followup_date,
           payment_slip_url: leadData.payment_slip_url,
           payment_stage: leadData.payment_stage,
+          interested_domain: leadData.interested_domain,
           assigned_to: user.id,
           created_by: user.id,
         })

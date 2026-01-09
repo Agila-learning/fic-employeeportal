@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Lead, STATUS_OPTIONS, SOURCE_OPTIONS } from '@/types';
+import { Lead, STATUS_OPTIONS, SOURCE_OPTIONS, INTERESTED_DOMAIN_OPTIONS, InterestedDomain } from '@/types';
 import { useLeads } from '@/hooks/useLeads';
 import {
   Table,
@@ -53,6 +53,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [successDateFilter, setSuccessDateFilter] = useState<DateFilterType>('all');
   const [rejectedDateFilter, setRejectedDateFilter] = useState<DateFilterType>('all');
+  const [domainFilter, setDomainFilter] = useState<string>('all');
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
 
@@ -98,7 +99,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
       }
 
       // Date filter for rejected leads - only apply when rejected date filter is selected
-      const rejectedStatuses = ['rejected', 'not_interested', 'not_interested_paid', 'different_domain'];
+      const rejectedStatuses = ['rejected', 'not_interested', 'not_interested_paid'];
       let matchesRejectedDate = true;
       if (rejectedDateFilter !== 'all') {
         // Only show rejected leads that match the date filter
@@ -113,10 +114,13 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
           matchesRejectedDate = false;
         }
       }
+
+      // Domain filter
+      const matchesDomain = domainFilter === 'all' || lead.interested_domain === domainFilter;
       
-      return matchesSearch && matchesStatus && matchesSource && matchesSuccessDate && matchesRejectedDate;
+      return matchesSearch && matchesStatus && matchesSource && matchesSuccessDate && matchesRejectedDate && matchesDomain;
     });
-  }, [leads, searchTerm, statusFilter, sourceFilter, successDateFilter, rejectedDateFilter]);
+  }, [leads, searchTerm, statusFilter, sourceFilter, successDateFilter, rejectedDateFilter, domainFilter]);
 
   const handleDelete = async (id: string) => {
     const success = await deleteLead(id);
@@ -127,7 +131,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
   };
 
   const exportToExcel = () => {
-    const headers = ['Candidate ID', 'Name', 'Email', 'Phone', 'Qualification', 'Experience', 'Current CTC', 'Expected CTC', 'Status', 'Payment Stage', 'Source'];
+    const headers = ['Candidate ID', 'Name', 'Email', 'Phone', 'Qualification', 'Experience', 'Current CTC', 'Expected CTC', 'Status', 'Payment Stage', 'Domain', 'Source'];
     const csvContent = [
       headers.join(','),
       ...filteredLeads.map(lead => [
@@ -141,6 +145,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
         lead.expected_ctc || '',
         STATUS_OPTIONS.find(s => s.value === lead.status)?.label || lead.status,
         lead.payment_stage || '',
+        INTERESTED_DOMAIN_OPTIONS.find(d => d.value === lead.interested_domain)?.label || lead.interested_domain || '',
         SOURCE_OPTIONS.find(s => s.value === lead.source)?.label || lead.source,
       ].join(','))
     ].join('\n');
@@ -153,9 +158,14 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
     toast.success('Leads exported successfully');
   };
 
-  // Count success and rejected leads
+  // Count success and rejected leads (excluding different_domain from rejected)
   const successCount = leads.filter(l => l.status === 'success').length;
-  const rejectedCount = leads.filter(l => ['rejected', 'not_interested', 'not_interested_paid', 'different_domain'].includes(l.status)).length;
+  const rejectedCount = leads.filter(l => ['rejected', 'not_interested', 'not_interested_paid'].includes(l.status)).length;
+  
+  // Domain-wise counts for paid leads (full_payment_done)
+  const itPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'it').length;
+  const nonItPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'non_it').length;
+  const bankingPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'banking').length;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -207,7 +217,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
           </Button>
         </div>
 
-        {/* Date Filters for Success and Rejected */}
+        {/* Date Filters and Domain Filter */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2 border-t border-border/50">
           <div className="flex items-center gap-2 flex-1">
             <CalendarDays className="h-4 w-4 text-green-600 hidden sm:block" />
@@ -237,6 +247,36 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
                 <SelectItem value="this_month">This Month</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <Select value={domainFilter} onValueChange={setDomainFilter}>
+            <SelectTrigger className="w-full sm:w-[150px] transition-all duration-300 hover:border-primary/50">
+              <SelectValue placeholder="Filter by domain" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Domains</SelectItem>
+              {INTERESTED_DOMAIN_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Domain-wise Payment Stats */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+          <span className="text-xs text-muted-foreground font-medium">Full Payment by Domain:</span>
+          <div className="flex gap-2">
+            <span className="px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+              IT: {itPaidCount}
+            </span>
+            <span className="px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium">
+              Non-IT: {nonItPaidCount}
+            </span>
+            <span className="px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium">
+              Banking: {bankingPaidCount}
+            </span>
           </div>
         </div>
       </div>

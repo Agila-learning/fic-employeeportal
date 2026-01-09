@@ -5,10 +5,10 @@ import { useEmployees } from '@/hooks/useEmployees';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeadFormDialog from '@/components/leads/LeadFormDialog';
-import { Users, FileSpreadsheet, UserCheck, TrendingUp, CheckCircle, Clock, Bell, ArrowRight, Trophy, CreditCard } from 'lucide-react';
+import { Users, FileSpreadsheet, UserCheck, TrendingUp, CheckCircle, Clock, Bell, ArrowRight, Trophy, CreditCard, Briefcase } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { STATUS_OPTIONS, Lead } from '@/types';
+import { STATUS_OPTIONS, Lead, INTERESTED_DOMAIN_OPTIONS } from '@/types';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
@@ -28,6 +28,11 @@ const AdminDashboard = () => {
   const registrationDone = leads.filter(l => l.payment_stage === 'registration_done').length;
   const initialPaymentDone = leads.filter(l => l.payment_stage === 'initial_payment_done').length;
   const fullPaymentDone = leads.filter(l => l.payment_stage === 'full_payment_done').length;
+  
+  // Domain-wise payment counts
+  const itPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'it').length;
+  const nonItPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'non_it').length;
+  const bankingPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'banking').length;
 
   const conversionRate = totalLeads > 0 ? Math.round(((convertedLeads + successLeads) / totalLeads) * 100) : 0;
 
@@ -141,6 +146,34 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Domain-wise Payment Stats */}
+        {fullPaymentDone > 0 && (
+          <Card className="border-border/50 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-950/30 dark:to-slate-900/20 animate-fade-in">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">Full Payment by Domain</p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-center">
+                  <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{itPaidCount}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">IT</p>
+                </div>
+                <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-center">
+                  <p className="text-xl font-bold text-purple-700 dark:text-purple-300">{nonItPaidCount}</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Non-IT</p>
+                </div>
+                <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-center">
+                  <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{bankingPaidCount}</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Banking</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Main Content Grid */}

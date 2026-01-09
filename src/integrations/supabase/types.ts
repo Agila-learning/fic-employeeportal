@@ -149,6 +149,9 @@ export type Database = {
           expected_ctc: string | null
           followup_date: string | null
           id: string
+          interested_domain:
+            | Database["public"]["Enums"]["interested_domain"]
+            | null
           name: string
           notes: string | null
           past_experience: string | null
@@ -171,6 +174,9 @@ export type Database = {
           expected_ctc?: string | null
           followup_date?: string | null
           id?: string
+          interested_domain?:
+            | Database["public"]["Enums"]["interested_domain"]
+            | null
           name: string
           notes?: string | null
           past_experience?: string | null
@@ -193,6 +199,9 @@ export type Database = {
           expected_ctc?: string | null
           followup_date?: string | null
           id?: string
+          interested_domain?:
+            | Database["public"]["Enums"]["interested_domain"]
+            | null
           name?: string
           notes?: string | null
           past_experience?: string | null
@@ -319,6 +328,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "employee"
+      interested_domain: "it" | "non_it" | "banking"
       lead_source:
         | "social_media"
         | "own_source"
@@ -470,6 +480,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "employee"],
+      interested_domain: ["it", "non_it", "banking"],
       lead_source: [
         "social_media",
         "own_source",
