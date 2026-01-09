@@ -6,13 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Mail, Lock, LogIn, UserPlus, User, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, User, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
 import ficLogo from '@/assets/fic-logo.jpeg';
 import { motion, AnimatePresence } from 'framer-motion';
 
+type AuthView = 'login' | 'signup' | 'forgot';
+
 const Auth = () => {
-  const { user, login, signup, isLoading } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const { user, login, signup, resetPassword, isLoading } = useAuth();
+  const [view, setView] = useState<AuthView>('login');
   
   // Login state
   const [loginEmail, setLoginEmail] = useState('');
@@ -25,6 +27,10 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
+
+  // Forgot password state
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
 
   if (isLoading) {
     return (
@@ -76,7 +82,7 @@ const Auth = () => {
     
     if (result.success) {
       toast.success('Account created successfully! You can now login.');
-      setIsSignUp(false);
+      setView('login');
       setLoginEmail(signupEmail);
       setSignupName('');
       setSignupEmail('');
@@ -87,6 +93,23 @@ const Auth = () => {
     }
     
     setIsSignupSubmitting(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsForgotSubmitting(true);
+
+    const result = await resetPassword(forgotEmail);
+    
+    if (result.success) {
+      toast.success('Password reset link sent to your email!');
+      setView('login');
+      setForgotEmail('');
+    } else {
+      toast.error(result.error || 'Failed to send reset link');
+    }
+    
+    setIsForgotSubmitting(false);
   };
 
   return (
@@ -103,10 +126,10 @@ const Auth = () => {
 
       <div className="flex-1 flex items-center justify-center p-4 relative">
         <div className="w-full max-w-md animate-fade-in">
-          {/* Logo */}
+          {/* Logo - Square with rounded corners to fit JPEG properly */}
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 h-28 w-28 rounded-full shadow-2xl overflow-hidden ring-4 ring-amber-400/30 hover:ring-amber-400/50 transition-all duration-500 hover:scale-105">
-              <img src={ficLogo} alt="FIC Logo" className="h-full w-full object-cover scale-110" />
+            <div className="mx-auto mb-4 h-24 w-24 rounded-xl shadow-2xl overflow-hidden border-2 border-amber-400/40 hover:border-amber-400/60 transition-all duration-500 hover:scale-105 bg-white">
+              <img src={ficLogo} alt="FIC Logo" className="h-full w-full object-contain p-1" />
             </div>
             <h1 className="text-3xl font-bold text-white drop-shadow-lg">FIC BDA Portal</h1>
             <p className="text-amber-400 font-medium mt-1 tracking-wide">Building Future</p>
@@ -115,15 +138,15 @@ const Auth = () => {
           <Card className="border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl hover:bg-white/10 transition-all duration-500">
             <CardHeader className="text-center pb-2">
               <CardTitle className="text-xl text-white">
-                {isSignUp ? 'Create Account' : 'Welcome Back'}
+                {view === 'login' ? 'Welcome Back' : view === 'signup' ? 'Create Account' : 'Reset Password'}
               </CardTitle>
               <CardDescription className="text-white/60">
-                {isSignUp ? 'Sign up to get started' : 'Sign in to continue'}
+                {view === 'login' ? 'Sign in to continue' : view === 'signup' ? 'Sign up to get started' : 'Enter your email to reset'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <AnimatePresence mode="wait">
-                {!isSignUp ? (
+                {view === 'login' && (
                   <motion.form
                     key="login"
                     initial={{ opacity: 0, x: -20 }}
@@ -150,7 +173,16 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="login-password" className="text-white/80">Password</Label>
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="login-password" className="text-white/80">Password</Label>
+                        <button
+                          type="button"
+                          onClick={() => setView('forgot')}
+                          className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
                         <Input
@@ -183,7 +215,7 @@ const Auth = () => {
                     <div className="text-center pt-4">
                       <button
                         type="button"
-                        onClick={() => setIsSignUp(true)}
+                        onClick={() => setView('signup')}
                         className="text-sm text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 mx-auto"
                       >
                         Don't have an account? Sign up
@@ -191,7 +223,9 @@ const Auth = () => {
                       </button>
                     </div>
                   </motion.form>
-                ) : (
+                )}
+
+                {view === 'signup' && (
                   <motion.form
                     key="signup"
                     initial={{ opacity: 0, x: 20 }}
@@ -284,11 +318,65 @@ const Auth = () => {
                     <div className="text-center pt-4">
                       <button
                         type="button"
-                        onClick={() => setIsSignUp(false)}
+                        onClick={() => setView('login')}
                         className="text-sm text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 mx-auto"
                       >
                         <ArrowLeft className="h-4 w-4" />
                         Already have an account? Sign in
+                      </button>
+                    </div>
+                  </motion.form>
+                )}
+
+                {view === 'forgot' && (
+                  <motion.form
+                    key="forgot"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                    onSubmit={handleForgotPassword}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="forgot-email" className="text-white/80">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Input
+                          id="forgot-email"
+                          type="email"
+                          placeholder="Enter your registered email"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white gap-2 shadow-lg" 
+                      disabled={isForgotSubmitting}
+                    >
+                      {isForgotSubmitting ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      ) : (
+                        <>
+                          <KeyRound className="h-4 w-4" />
+                          Send Reset Link
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="text-center pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setView('login')}
+                        className="text-sm text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 mx-auto"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Sign in
                       </button>
                     </div>
                   </motion.form>
