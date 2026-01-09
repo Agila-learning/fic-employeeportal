@@ -93,8 +93,9 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-card p-5 shadow-sm border border-border/50 hover:shadow-md transition-all duration-300">
-        <div className="relative flex-1 min-w-[200px] group">
+      <div className="flex flex-col gap-4 rounded-2xl bg-card p-4 sm:p-5 shadow-sm border border-border/50 hover:shadow-md transition-all duration-300">
+        {/* Search */}
+        <div className="relative w-full group">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             placeholder="Search by name, email, ID, or phone..."
@@ -104,41 +105,44 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
           />
         </div>
         
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px] transition-all duration-300 hover:border-primary/50">
-              <SelectValue placeholder="Filter by status" />
+        {/* Filter Row */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 flex-1">
+            <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] transition-all duration-300 hover:border-primary/50">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {STATUS_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="w-full sm:w-[150px] transition-all duration-300 hover:border-primary/50">
+              <SelectValue placeholder="Filter by source" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {STATUS_OPTIONS.map(option => (
+              <SelectItem value="all">All Sources</SelectItem>
+              {SOURCE_OPTIONS.map(option => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
+          <Button onClick={exportToExcel} variant="outline" className="gap-2 hover:bg-primary hover:text-primary-foreground transition-all duration-300 hover:shadow-md w-full sm:w-auto">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
         </div>
-
-        <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-[150px] transition-all duration-300 hover:border-primary/50">
-            <SelectValue placeholder="Filter by source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sources</SelectItem>
-            {SOURCE_OPTIONS.map(option => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button onClick={exportToExcel} variant="outline" className="gap-2 hover:bg-primary hover:text-primary-foreground transition-all duration-300 hover:shadow-md">
-          <Download className="h-4 w-4" />
-          Export Excel
-        </Button>
       </div>
 
       {/* Results count */}
