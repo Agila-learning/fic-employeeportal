@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ficLogo from '@/assets/fic-logo.jpeg';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -86,8 +87,12 @@ const Sidebar = () => {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-white/10 p-4">
+        {/* Theme Toggle & Logout */}
+        <div className="border-t border-white/10 p-4 space-y-2">
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5">
+            <span className="text-sm text-white/70">Theme</span>
+            <ThemeToggle />
+          </div>
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-400"
