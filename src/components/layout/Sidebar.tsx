@@ -49,7 +49,7 @@ const Sidebar = () => {
             <img src={ficLogo} alt="FIC Logo" className="h-10 w-10 object-contain" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">FIC BDA Portal</h1>
+            <h1 className="text-lg font-bold text-white">FIC Portal</h1>
             <p className="text-xs text-amber-400 font-medium">Building Future</p>
           </div>
         </div>
@@ -66,6 +66,7 @@ const Sidebar = () => {
               <p className="text-sm font-semibold truncate text-white">{user?.name}</p>
               <p className="text-xs text-amber-400/80 capitalize font-medium">{user?.role}</p>
             </div>
+            <ThemeToggle />
           </div>
         </div>
 
@@ -92,12 +93,8 @@ const Sidebar = () => {
           })}
         </nav>
 
-        {/* Theme Toggle & Logout */}
-        <div className="border-t border-white/10 p-4 space-y-2">
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5">
-            <span className="text-sm text-white/70">Theme</span>
-            <ThemeToggle />
-          </div>
+        {/* Logout */}
+        <div className="border-t border-white/10 p-4">
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-400"

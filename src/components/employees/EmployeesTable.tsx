@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 const EmployeesTable = () => {
-  const { employees, toggleEmployeeStatus, isLoading } = useEmployees();
+  const { employees, toggleEmployeeStatus, isLoading, refetchEmployees } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
@@ -86,7 +86,7 @@ const EmployeesTable = () => {
         </Table>
       </div>
 
-      {editingEmployee && <EmployeeFormDialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)} employee={editingEmployee} />}
+      {editingEmployee && <EmployeeFormDialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)} employee={editingEmployee} onSuccess={refetchEmployees} />}
     </div>
   );
 };

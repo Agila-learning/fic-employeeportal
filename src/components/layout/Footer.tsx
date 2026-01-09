@@ -2,7 +2,7 @@ import { Building2, Mail, Globe } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="ml-0 md:ml-64 border-t border-border bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+    <footer className="ml-0 md:ml-64 border-t border-white/10 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white">
       <div className="px-4 sm:px-6 py-6 sm:py-8">
         <div className="max-w-7xl mx-auto">
           {/* Main Footer Content */}

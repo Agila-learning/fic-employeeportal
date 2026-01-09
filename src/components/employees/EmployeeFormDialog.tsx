@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Employee, useEmployees } from '@/hooks/useEmployees';
+import { Employee } from '@/hooks/useEmployees';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,24 +14,50 @@ interface EmployeeFormDialogProps {
   employee: Employee;
 }
 
-const EmployeeFormDialog = ({ open, onOpenChange, employee }: EmployeeFormDialogProps) => {
-  const { updateEmployee } = useEmployees();
+const EmployeeFormDialog = ({ open, onOpenChange, employee, onSuccess }: EmployeeFormDialogProps & { onSuccess?: () => void }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', employee_id: '', is_active: true });
 
   useEffect(() => {
-    if (employee) {
-      setFormData({ name: employee.name, email: employee.email, employee_id: employee.employee_id || '', is_active: employee.is_active ?? true });
+    if (employee && open) {
+      setFormData({ 
+        name: employee.name, 
+        email: employee.email, 
+        employee_id: employee.employee_id || '', 
+        is_active: employee.is_active ?? true 
+      });
     }
   }, [employee, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) { toast.error('Please fill in all required fields'); return; }
+    if (!formData.name || !formData.email) { 
+      toast.error('Please fill in all required fields'); 
+      return; 
+    }
     setIsSubmitting(true);
-    const success = await updateEmployee(employee.user_id, { name: formData.name, email: formData.email, employee_id: formData.employee_id || null, is_active: formData.is_active });
-    if (success) { toast.success('Employee updated successfully'); onOpenChange(false); }
-    setIsSubmitting(false);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          name: formData.name, 
+          email: formData.email, 
+          employee_id: formData.employee_id || null, 
+          is_active: formData.is_active 
+        })
+        .eq('user_id', employee.user_id);
+      
+      if (error) throw error;
+      
+      toast.success('Employee updated successfully');
+      onSuccess?.();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error updating employee:', error);
+      toast.error(error.message || 'Failed to update employee');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

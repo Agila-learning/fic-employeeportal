@@ -100,26 +100,24 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Help & Support Card - Admin Only */}
-        {user?.role === 'admin' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5" />
-                Help & Support
-              </CardTitle>
-              <CardDescription>Need assistance? Contact our support team</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <a href="mailto:info@forgeindiaconnect.com">
-                <Button variant="outline" className="w-full gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email: info@forgeindiaconnect.com
-                </Button>
-              </a>
-            </CardContent>
-          </Card>
-        )}
+        {/* Help & Support Card - For All Users */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              Help & Support
+            </CardTitle>
+            <CardDescription>Need assistance? Contact our support team</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <a href="mailto:info@forgeindiaconnect.com">
+              <Button variant="outline" className="w-full gap-2">
+                <Mail className="h-4 w-4" />
+                Email: info@forgeindiaconnect.com
+              </Button>
+            </a>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

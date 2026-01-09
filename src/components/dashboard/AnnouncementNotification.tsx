@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
-import { Bell, X, Megaphone } from 'lucide-react';
+import { Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -40,11 +40,11 @@ const AnnouncementNotification = () => {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="relative"
+          className="relative h-10 w-10 rounded-full bg-gradient-to-br from-amber-400/20 to-amber-600/20 hover:from-amber-400/30 hover:to-amber-600/30 transition-all"
         >
-          <Bell className="h-5 w-5" />
+          <Megaphone className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold animate-pulse">
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white text-xs flex items-center justify-center font-bold shadow-lg animate-bounce-soft">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
