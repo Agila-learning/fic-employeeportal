@@ -247,10 +247,12 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
 
       const dataToSave = {
         ...formData,
-        status: finalStatus,
-        resume_url: resumeUrl,
-        payment_slip_url: paymentSlipUrl,
+        status: finalStatus || formData.status || 'nc1',
+        resume_url: resumeUrl || null,
+        payment_slip_url: paymentSlipUrl || null,
         followup_date: formData.followup_date ? new Date(formData.followup_date).toISOString() : null,
+        payment_stage: formData.payment_stage || null,
+        interested_domain: formData.interested_domain || 'it',
       };
 
       if (mode === 'add') {
