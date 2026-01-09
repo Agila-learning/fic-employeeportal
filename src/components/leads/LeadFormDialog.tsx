@@ -184,6 +184,12 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
       return;
     }
 
+    // Check if success status requires payment slip
+    if (formData.status === 'success' && !formData.payment_slip_url && !paymentSlipFile) {
+      toast.error('Payment slip/screenshot is required for Success status');
+      return;
+    }
+
     // Check if rejection status requires a comment/reason
     if (REJECTION_STATUSES.includes(formData.status) && mode === 'edit' && previousStatus !== formData.status) {
       if (!rejectionReason.trim()) {
@@ -709,17 +715,20 @@ const LeadForm = ({
       )}
     </div>
 
-    {/* Payment Slip Upload - Only show for converted status */}
-    {(formData.status === 'converted' || formData.payment_slip_url) && (
-      <div className="space-y-2">
-        <Label className="flex items-center gap-2">
+    {/* Payment Slip Upload - Required for success status */}
+    {(formData.status === 'success' || formData.payment_slip_url) && (
+      <div className="space-y-2 p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
+        <Label className="flex items-center gap-2 text-green-700 dark:text-green-400">
           <CreditCard className="h-4 w-4" />
-          Payment Slip / Screenshot
+          Payment Slip / Screenshot {formData.status === 'success' && <span className="text-red-500">*</span>}
         </Label>
+        <p className="text-xs text-green-600 dark:text-green-400 mb-2">
+          Upload payment proof for future reference (required for Success status)
+        </p>
         {!isViewMode ? (
           <div className="flex items-center gap-4">
             <label className="flex-1 cursor-pointer">
-              <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-green-300 dark:border-green-800 p-4 transition-colors hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30">
+              <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-green-300 dark:border-green-800 p-4 transition-colors hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 bg-white dark:bg-slate-800">
                 <FileImage className="h-5 w-5 text-green-600 dark:text-green-400" />
                 <span className="text-sm text-green-600 dark:text-green-400">
                   {paymentSlipFile?.name || formData.payment_slip_url || 'Click to upload payment slip'}

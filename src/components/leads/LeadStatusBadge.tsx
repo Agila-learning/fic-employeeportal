@@ -5,12 +5,13 @@ interface LeadStatusBadgeProps {
   status: LeadStatus;
 }
 
-const statusVariantMap: Record<LeadStatus, 'nc1' | 'nc2' | 'nc3' | 'followUp' | 'converted' | 'rejected' | 'notInterested' | 'notInterestedPaid' | 'differentDomain'> = {
+const statusVariantMap: Record<LeadStatus, 'nc1' | 'nc2' | 'nc3' | 'followUp' | 'success' | 'rejected' | 'notInterested' | 'notInterestedPaid' | 'differentDomain'> = {
   nc1: 'nc1',
   nc2: 'nc2',
   nc3: 'nc3',
   follow_up: 'followUp',
-  converted: 'converted',
+  success: 'success',
+  converted: 'success', // Legacy mapping - converted now shows as success
   rejected: 'rejected',
   not_interested: 'notInterested',
   not_interested_paid: 'notInterestedPaid',

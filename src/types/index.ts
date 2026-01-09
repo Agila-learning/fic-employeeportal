@@ -78,7 +78,7 @@ export const STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }
   { value: 'nc2', label: 'NC2 - Second Contact', color: 'bg-blue-200 text-blue-800 border-blue-300' },
   { value: 'nc3', label: 'NC3 - Third Contact', color: 'bg-blue-300 text-blue-900 border-blue-400' },
   { value: 'follow_up', label: 'Follow Up', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  { value: 'converted', label: 'Converted', color: 'bg-green-100 text-green-700 border-green-200' },
+  { value: 'success', label: 'Success', color: 'bg-green-100 text-green-700 border-green-200' },
   { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700 border-red-200' },
   { value: 'not_interested', label: 'Not Interested', color: 'bg-gray-100 text-gray-700 border-gray-200' },
   { value: 'not_interested_paid', label: 'Not Interested (Paid)', color: 'bg-orange-100 text-orange-700 border-orange-200' },
