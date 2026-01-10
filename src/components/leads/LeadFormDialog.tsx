@@ -330,7 +330,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     <>
       <ConfettiCelebration show={showCelebration} onComplete={handleCelebrationComplete} />
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-3xl max-h-[90vh] w-[95vw] sm:w-full overflow-hidden flex flex-col p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {mode === 'add' ? 'Add New Lead' : mode === 'edit' ? 'Edit Lead' : 'Lead Details'}
@@ -532,53 +532,62 @@ const LeadForm = ({
   setRejectionReason,
   lead
 }: LeadFormProps) => (
-  <form onSubmit={handleSubmit} className="space-y-6 py-4">
+  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 py-2 sm:py-4">
     {/* Lead Created Info */}
     {lead && (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 p-3 rounded-lg bg-muted/50 text-sm">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className="text-muted-foreground">Created:</span>
-          <span className="font-medium whitespace-nowrap">{format(new Date(lead.created_at), 'MMM d, yyyy')}</span>
-          <span className="text-muted-foreground text-xs">{format(new Date(lead.created_at), 'h:mm a')}</span>
+      <div className="flex flex-col gap-2 p-3 rounded-lg bg-muted/50 text-xs sm:text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground">Created:</span>
+          </div>
+          <div className="ml-5 sm:ml-0">
+            <span className="font-medium">{format(new Date(lead.created_at), 'MMM d, yyyy')}</span>
+            <span className="text-muted-foreground ml-1">{format(new Date(lead.created_at), 'h:mm a')}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className="text-muted-foreground">Updated:</span>
-          <span className="font-medium whitespace-nowrap">{format(new Date(lead.updated_at), 'MMM d, yyyy')}</span>
-          <span className="text-muted-foreground text-xs">{format(new Date(lead.updated_at), 'h:mm a')}</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground">Updated:</span>
+          </div>
+          <div className="ml-5 sm:ml-0">
+            <span className="font-medium">{format(new Date(lead.updated_at), 'MMM d, yyyy')}</span>
+            <span className="text-muted-foreground ml-1">{format(new Date(lead.updated_at), 'h:mm a')}</span>
+          </div>
         </div>
       </div>
     )}
 
     {/* Candidate ID */}
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="candidate_id">Candidate ID</Label>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="candidate_id" className="text-xs sm:text-sm">Candidate ID</Label>
         <Input
           id="candidate_id"
           value={formData.candidate_id}
           onChange={(e) => isAdmin && setFormData((prev: any) => ({ ...prev, candidate_id: e.target.value }))}
           disabled={!isAdmin || isViewMode}
-          className="bg-muted font-mono"
+          className="bg-muted font-mono text-sm"
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="name">Full Name *</Label>
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="name" className="text-xs sm:text-sm">Full Name *</Label>
         <Input
           id="name"
           value={formData.name}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, name: e.target.value }))}
           disabled={isViewMode}
           placeholder="Enter full name"
+          className="text-sm"
         />
       </div>
     </div>
 
     {/* Contact Info */}
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email *</Label>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="email" className="text-xs sm:text-sm">Email *</Label>
         <Input
           id="email"
           type="email"
@@ -586,72 +595,78 @@ const LeadForm = ({
           onChange={(e) => setFormData((prev: any) => ({ ...prev, email: e.target.value }))}
           disabled={isViewMode}
           placeholder="email@example.com"
+          className="text-sm"
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number *</Label>
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="phone" className="text-xs sm:text-sm">Phone Number *</Label>
         <Input
           id="phone"
           value={formData.phone}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, phone: e.target.value }))}
           disabled={isViewMode}
           placeholder="+91 9876543210"
+          className="text-sm"
         />
       </div>
     </div>
 
     {/* Qualification & Experience */}
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="qualification">Qualification</Label>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="qualification" className="text-xs sm:text-sm">Qualification</Label>
         <Input
           id="qualification"
           value={formData.qualification}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, qualification: e.target.value }))}
           disabled={isViewMode}
           placeholder="B.Tech, MBA, etc."
+          className="text-sm"
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="experience">Past Experience</Label>
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="experience" className="text-xs sm:text-sm">Past Experience</Label>
         <Input
           id="experience"
           value={formData.past_experience}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, past_experience: e.target.value }))}
           disabled={isViewMode}
           placeholder="2 years at Company"
+          className="text-sm"
         />
       </div>
     </div>
 
     {/* CTC */}
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="current_ctc">Current CTC</Label>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="current_ctc" className="text-xs sm:text-sm">Current CTC</Label>
         <Input
           id="current_ctc"
           value={formData.current_ctc}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, current_ctc: e.target.value }))}
           disabled={isViewMode}
           placeholder="6 LPA"
+          className="text-sm"
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="expected_ctc">Expected CTC</Label>
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label htmlFor="expected_ctc" className="text-xs sm:text-sm">Expected CTC</Label>
         <Input
           id="expected_ctc"
           value={formData.expected_ctc}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, expected_ctc: e.target.value }))}
           disabled={isViewMode}
           placeholder="10 LPA"
+          className="text-sm"
         />
       </div>
     </div>
 
     {/* Status & Source */}
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label>Lead Status</Label>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label className="text-xs sm:text-sm">Lead Status</Label>
         <Select
           value={formData.status}
           onValueChange={(value: LeadStatus) => {
@@ -664,7 +679,7 @@ const LeadForm = ({
           }}
           disabled={isViewMode || formData.status === 'success'}
         >
-          <SelectTrigger>
+          <SelectTrigger className="text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -676,14 +691,14 @@ const LeadForm = ({
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-2">
-        <Label>Lead Source</Label>
+      <div className="space-y-1.5 sm:space-y-2">
+        <Label className="text-xs sm:text-sm">Lead Source</Label>
         <Select
           value={formData.source}
           onValueChange={(value: LeadSource) => setFormData((prev: any) => ({ ...prev, source: value }))}
           disabled={isViewMode}
         >
-          <SelectTrigger>
+          <SelectTrigger className="text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -147,6 +147,7 @@ export type Database = {
           current_ctc: string | null
           email: string
           expected_ctc: string | null
+          followup_count: number | null
           followup_date: string | null
           id: string
           interested_domain:
@@ -172,6 +173,7 @@ export type Database = {
           current_ctc?: string | null
           email: string
           expected_ctc?: string | null
+          followup_count?: number | null
           followup_date?: string | null
           id?: string
           interested_domain?:
@@ -197,6 +199,7 @@ export type Database = {
           current_ctc?: string | null
           email?: string
           expected_ctc?: string | null
+          followup_count?: number | null
           followup_date?: string | null
           id?: string
           interested_domain?:

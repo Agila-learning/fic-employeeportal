@@ -13,7 +13,8 @@ import {
   CalendarCheck,
   Settings,
   Menu,
-  X
+  X,
+  CalendarClock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ const Sidebar = () => {
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/employees', icon: Users, label: 'Employees' },
     { to: '/admin/leads', icon: FileSpreadsheet, label: 'All Leads' },
+    { to: '/admin/followups', icon: CalendarClock, label: 'Follow-ups' },
     { to: '/admin/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
     { to: '/admin/attendance', icon: CalendarCheck, label: 'Attendance' },
@@ -59,6 +61,7 @@ const Sidebar = () => {
   const employeeLinks = [
     { to: '/employee', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/employee/leads', icon: FileSpreadsheet, label: 'My Leads' },
+    { to: '/employee/followups', icon: CalendarClock, label: 'Follow-ups' },
     { to: '/employee/add-lead', icon: UserPlus, label: 'Add Lead' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
