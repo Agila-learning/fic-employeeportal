@@ -199,6 +199,27 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
       return;
     }
 
+    // Check if follow_up status with expired date requires new date selection
+    if (formData.status === 'follow_up' && mode === 'edit' && lead) {
+      const isMaxAttempts = (lead.followup_count || 0) >= 6;
+      const followupDateExpired = formData.followup_date && new Date(formData.followup_date) < new Date();
+      
+      if (isMaxAttempts) {
+        toast.error('Maximum follow-up attempts reached. Please convert or reject this lead.');
+        return;
+      }
+      
+      if (followupDateExpired) {
+        toast.error('Follow-up date has expired. Please select a future date.');
+        return;
+      }
+      
+      if (!formData.followup_date) {
+        toast.error('Please select a follow-up date');
+        return;
+      }
+    }
+
     // Check if converted status requires payment stage
     if (formData.status === 'converted' && !formData.payment_stage) {
       toast.error('Please select a payment stage for Converted status');
@@ -330,7 +351,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     <>
       <ConfettiCelebration show={showCelebration} onComplete={handleCelebrationComplete} />
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[95vh] w-[95vw] sm:w-full overflow-hidden flex flex-col p-3 sm:p-6">
+        <DialogContent className="max-w-3xl max-h-[90vh] w-[98vw] sm:w-[95vw] md:w-full overflow-hidden flex flex-col p-2 sm:p-4 md:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {mode === 'add' ? 'Add New Lead' : mode === 'edit' ? 'Edit Lead' : 'Lead Details'}
@@ -352,7 +373,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
             </TabsList>
 
             <TabsContent value="details" className="flex-1 overflow-auto mt-2">
-              <ScrollArea className="h-[55vh] sm:h-[60vh] pr-2 sm:pr-4">
+              <ScrollArea className="h-[50vh] sm:h-[55vh] md:h-[60vh] pr-1 sm:pr-2 md:pr-4">
                 <LeadForm
                   formData={formData}
                   setFormData={setFormData}
@@ -466,7 +487,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
             </TabsContent>
           </Tabs>
         ) : (
-          <ScrollArea className="h-[60vh] pr-4">
+          <ScrollArea className="h-[50vh] sm:h-[55vh] md:h-[60vh] pr-1 sm:pr-2 md:pr-4">
             <LeadForm
               formData={formData}
               setFormData={setFormData}
@@ -712,18 +733,18 @@ const LeadForm = ({
       </div>
     </div>
 
-    <div className="space-y-2">
-      <Label className="flex items-center gap-2">
+    <div className="space-y-1.5 sm:space-y-2">
+      <Label className="flex items-center gap-2 text-xs sm:text-sm">
         Interested Domain <span className="text-red-500">*</span>
       </Label>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
         {INTERESTED_DOMAIN_OPTIONS.map((option) => (
           <button
             key={option.value}
             type="button"
             disabled={isViewMode}
             onClick={() => setFormData((prev: any) => ({ ...prev, interested_domain: option.value }))}
-            className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+            className={`p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all ${
               formData.interested_domain === option.value
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border hover:border-primary/50'
@@ -737,22 +758,22 @@ const LeadForm = ({
 
     {/* Payment Stage - Show when status is converted or success */}
     {(formData.status === 'converted' || formData.status === 'success') && (
-      <div className="space-y-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
-        <Label className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+      <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
+        <Label className="flex items-center gap-2 text-xs sm:text-sm text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="h-4 w-4" />
           Payment Stage <span className="text-red-500">*</span>
         </Label>
-        <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-2">
+        <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 mb-2">
           Select the current payment stage. Full payment will automatically mark as Success.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
           {PAYMENT_STAGE_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               disabled={isViewMode}
               onClick={() => setFormData((prev: any) => ({ ...prev, payment_stage: option.value }))}
-              className={`p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all ${
+              className={`p-2 sm:p-3 rounded-lg border-2 text-[10px] sm:text-sm font-medium transition-all ${
                 formData.payment_stage === option.value
                   ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
                   : 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 text-emerald-600 dark:text-emerald-400'
@@ -772,47 +793,75 @@ const LeadForm = ({
     )}
 
     {/* Follow-up Date - Show when status is follow_up (hide for success/full_payment_done) */}
-    {formData.status === 'follow_up' && formData.payment_stage !== 'full_payment_done' && formData.status !== 'success' && (
-      <div className="space-y-2 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
-        <Label htmlFor="followup_date" className="flex items-center justify-between gap-2 text-amber-700 dark:text-amber-400">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Follow-up Date & Time <span className="text-red-500">*</span>
-          </div>
-          {lead && (
-            <div className="flex items-center gap-1 text-xs">
-              <span className={`font-medium ${(lead.followup_count || 0) >= 6 ? 'text-red-600' : 'text-amber-600'}`}>
-                Attempts: {lead.followup_count || 0}/6
-              </span>
-              <div className="flex gap-0.5 ml-1">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-1.5 h-1.5 rounded-full ${i < (lead.followup_count || 0) ? 'bg-amber-500' : 'bg-amber-200 dark:bg-amber-800'}`}
-                  />
-                ))}
+    {formData.status === 'follow_up' && formData.payment_stage !== 'full_payment_done' && (
+      (() => {
+        const isExpired = lead?.followup_date && new Date(lead.followup_date) < new Date() && !formData.followup_date;
+        const currentDateExpired = formData.followup_date && new Date(formData.followup_date) < new Date();
+        const isMaxAttempts = (lead?.followup_count || 0) >= 6;
+        
+        return (
+          <div className={`space-y-2 p-3 sm:p-4 rounded-lg border ${isExpired || currentDateExpired ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800' : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900'}`}>
+            <Label htmlFor="followup_date" className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isExpired || currentDateExpired ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Follow-up Date & Time <span className="text-red-500">*</span></span>
               </div>
-            </div>
-          )}
-        </Label>
-        {lead && (lead.followup_count || 0) >= 6 && (
-          <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-400 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            Maximum follow-up attempts reached. Please convert or reject this lead.
+              {lead && (
+                <div className="flex items-center gap-1 text-xs">
+                  <span className={`font-medium ${isMaxAttempts ? 'text-red-600' : 'text-amber-600'}`}>
+                    Attempts: {lead.followup_count || 0}/6
+                  </span>
+                  <div className="flex gap-0.5 ml-1">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-1.5 h-1.5 rounded-full ${i < (lead.followup_count || 0) ? 'bg-amber-500' : 'bg-amber-200 dark:bg-amber-800'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Label>
+            
+            {/* Expired date warning */}
+            {(isExpired || currentDateExpired) && !isMaxAttempts && (
+              <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold">Follow-up date has expired!</p>
+                  <p className="mt-1">Please select a new follow-up date to continue. You have {6 - (lead?.followup_count || 0)} attempts remaining.</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Max attempts reached */}
+            {isMaxAttempts && (
+              <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold">Maximum follow-up attempts reached (6/6)!</p>
+                  <p className="mt-1">You must either convert or reject this lead. No more follow-up date changes allowed.</p>
+                </div>
+              </div>
+            )}
+            
+            <Input
+              id="followup_date"
+              type="datetime-local"
+              value={formData.followup_date}
+              onChange={(e) => setFormData((prev: any) => ({ ...prev, followup_date: e.target.value }))}
+              disabled={isViewMode || isMaxAttempts}
+              className={`bg-white dark:bg-slate-800 text-sm ${(isExpired || currentDateExpired) && !isMaxAttempts ? 'border-red-400 ring-2 ring-red-200 dark:ring-red-800' : ''}`}
+              min={new Date().toISOString().slice(0, 16)}
+            />
+            <p className={`text-xs ${isExpired || currentDateExpired ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
+              {isMaxAttempts 
+                ? 'Change status to Converted or Rejected to proceed.' 
+                : `You will be notified on this date. (${6 - (lead?.followup_count || 0)} changes remaining)`}
+            </p>
           </div>
-        )}
-        <Input
-          id="followup_date"
-          type="datetime-local"
-          value={formData.followup_date}
-          onChange={(e) => setFormData((prev: any) => ({ ...prev, followup_date: e.target.value }))}
-          disabled={isViewMode || (lead && (lead.followup_count || 0) >= 6)}
-          className="bg-white dark:bg-slate-800"
-        />
-        <p className="text-xs text-amber-600 dark:text-amber-400">
-          You will be notified on this date to follow up with the candidate. {lead && `(${6 - (lead.followup_count || 0)} changes remaining)`}
-        </p>
-      </div>
+        );
+      })()
     )}
 
     {/* Rejection Reason Warning */}

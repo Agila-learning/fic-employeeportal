@@ -49,8 +49,13 @@ const EmployeeDashboard = () => {
   const recentLeads = [...myLeads].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 5);
   const statusDistribution = STATUS_OPTIONS.map(status => ({ ...status, count: myLeads.filter(l => l.status === status.value).length })).filter(s => s.count > 0);
 
-  // Get followup leads for notifications
-  const followupLeads = myLeads.filter(l => l.followup_date);
+  // Get followup leads for notifications - exclude success and full_payment_done leads
+  // Only show leads with follow_up status that are not success/full_payment_done
+  const followupLeads = myLeads.filter(l => 
+    l.followup_date && 
+    l.status === 'follow_up' && 
+    l.payment_stage !== 'full_payment_done'
+  );
 
   // Dynamic greeting based on time
   useEffect(() => {

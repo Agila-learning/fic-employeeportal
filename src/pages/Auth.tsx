@@ -159,7 +159,7 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="login-email" className="text-white/80">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="login-email"
                           type="email"
@@ -184,7 +184,7 @@ const Auth = () => {
                         </button>
                       </div>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="login-password"
                           type="password"
@@ -238,7 +238,7 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="signup-name" className="text-white/80">Full Name</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="signup-name"
                           type="text"
@@ -254,7 +254,7 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="signup-email" className="text-white/80">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="signup-email"
                           type="email"
@@ -270,7 +270,7 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="signup-password" className="text-white/80">Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="signup-password"
                           type="password"
@@ -287,7 +287,7 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="signup-confirm" className="text-white/80">Confirm Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="signup-confirm"
                           type="password"
@@ -341,7 +341,7 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="forgot-email" className="text-white/80">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="forgot-email"
                           type="email"

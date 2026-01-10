@@ -34,9 +34,12 @@ const FollowupNotifications = ({ leads, onViewLead }: FollowupNotificationsProps
   const prevUrgentCount = useRef(0);
 
   useEffect(() => {
-    // Exclude leads that are already success or have full payment done
+    // Exclude leads that are already success, have full payment done, or don't have follow_up status
     const followupLeads = leads.filter(l => {
       if (!l.followup_date) return false;
+      // Exclude success leads completely
+      if (l.status === 'success') return false;
+      // Only show leads with follow_up status
       if (l.status !== 'follow_up') return false;
       if (l.payment_stage === 'full_payment_done') return false;
       return true;
