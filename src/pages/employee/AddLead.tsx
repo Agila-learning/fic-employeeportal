@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LeadStatus, LeadSource, InterestedDomain, STATUS_OPTIONS, SOURCE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
+import { LeadStatus, LeadSource, InterestedDomain, STATUS_OPTIONS_ADMIN, SOURCE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
 import { useLeads } from '@/hooks/useLeads';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Upload, ArrowLeft, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { sanitizeText, sanitizeEmail, sanitizePhone, stripHtml } from '@/utils/sanitize';
 
 const generateCandidateId = () => `FIC${Math.floor(Math.random() * 90000) + 10000}`;
 
@@ -30,11 +31,30 @@ const AddLead = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.phone) {
+    
+    // Sanitize all inputs before submission
+    const sanitizedData = {
+      ...formData,
+      name: stripHtml(formData.name).trim(),
+      email: sanitizeEmail(formData.email),
+      phone: sanitizePhone(formData.phone),
+      qualification: stripHtml(formData.qualification || '').trim(),
+      past_experience: stripHtml(formData.past_experience || '').trim(),
+      current_ctc: stripHtml(formData.current_ctc || '').trim(),
+      expected_ctc: stripHtml(formData.expected_ctc || '').trim(),
+      notes: stripHtml(formData.notes || '').trim(),
+    };
+    
+    if (!sanitizedData.name || !sanitizedData.email || !sanitizedData.phone) {
       toast.error('Please fill in all required fields'); return;
     }
+    
+    if (!sanitizedData.email.includes('@')) {
+      toast.error('Please enter a valid email address'); return;
+    }
+    
     setIsSubmitting(true);
-    const result = await addLead(formData);
+    const result = await addLead(sanitizedData);
     if (result) { toast.success('Lead added successfully'); navigate('/employee/leads'); }
     setIsSubmitting(false);
   };
@@ -67,7 +87,7 @@ const AddLead = () => {
                 <div className="space-y-2"><Label>Expected CTC</Label><Input value={formData.expected_ctc} onChange={(e) => setFormData(p => ({ ...p, expected_ctc: e.target.value }))} placeholder="10 LPA" /></div>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label>Status</Label><Select value={formData.status} onValueChange={(v: LeadStatus) => setFormData(p => ({ ...p, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
+                <div className="space-y-2"><Label>Status</Label><Select value={formData.status} onValueChange={(v: LeadStatus) => setFormData(p => ({ ...p, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_OPTIONS_ADMIN.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
                 <div className="space-y-2"><Label>Source</Label><Select value={formData.source} onValueChange={(v: LeadSource) => setFormData(p => ({ ...p, source: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SOURCE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
                 <div className="space-y-2"><Label>Interested Domain</Label><Select value={formData.interested_domain} onValueChange={(v: InterestedDomain) => setFormData(p => ({ ...p, interested_domain: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{INTERESTED_DOMAIN_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
               </div>

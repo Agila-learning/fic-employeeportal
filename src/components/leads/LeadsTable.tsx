@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Lead, STATUS_OPTIONS, SOURCE_OPTIONS, INTERESTED_DOMAIN_OPTIONS, InterestedDomain } from '@/types';
+import { Lead, STATUS_OPTIONS, STATUS_OPTIONS_ADMIN, SOURCE_OPTIONS, INTERESTED_DOMAIN_OPTIONS, InterestedDomain } from '@/types';
 import { useLeads } from '@/hooks/useLeads';
 import {
   Table,
@@ -188,7 +188,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                {STATUS_OPTIONS.map(option => (
+                {STATUS_OPTIONS_ADMIN.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>

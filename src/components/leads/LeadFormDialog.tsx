@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lead, LeadStatus, LeadSource, PaymentStage, InterestedDomain, STATUS_OPTIONS, SOURCE_OPTIONS, PAYMENT_STAGE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
+import { Lead, LeadStatus, LeadSource, PaymentStage, InterestedDomain, STATUS_OPTIONS, STATUS_OPTIONS_ADMIN, SOURCE_OPTIONS, PAYMENT_STAGE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
 import { useLeads, useLeadComments, useLeadStatusHistory } from '@/hooks/useLeads';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -271,8 +271,11 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
         const success = await updateLead(lead.id, dataToSave, lead.status);
         if (success) {
           // Show celebration if full payment done
-          if (formData.payment_stage === 'full_payment_done') {
-            setShowCelebration(true);
+          if (formData.payment_stage === 'full_payment_done' || dataToSave.payment_stage === 'full_payment_done') {
+            // Delay to ensure dialog stays open for celebration
+            setTimeout(() => {
+              setShowCelebration(true);
+            }, 100);
           } else {
             toast.success('Lead updated successfully');
             onSave?.();
@@ -532,16 +535,18 @@ const LeadForm = ({
   <form onSubmit={handleSubmit} className="space-y-6 py-4">
     {/* Lead Created Info */}
     {lead && (
-      <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 text-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 p-3 rounded-lg bg-muted/50 text-sm">
         <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-muted-foreground">Created:</span>
-          <span className="font-medium">{format(new Date(lead.created_at), 'MMM d, yyyy h:mm a')}</span>
+          <span className="font-medium whitespace-nowrap">{format(new Date(lead.created_at), 'MMM d, yyyy')}</span>
+          <span className="text-muted-foreground text-xs">{format(new Date(lead.created_at), 'h:mm a')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
+          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-muted-foreground">Updated:</span>
-          <span className="font-medium">{format(new Date(lead.updated_at), 'MMM d, yyyy h:mm a')}</span>
+          <span className="font-medium whitespace-nowrap">{format(new Date(lead.updated_at), 'MMM d, yyyy')}</span>
+          <span className="text-muted-foreground text-xs">{format(new Date(lead.updated_at), 'h:mm a')}</span>
         </div>
       </div>
     )}
@@ -663,7 +668,7 @@ const LeadForm = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {STATUS_OPTIONS.map(option => (
+            {STATUS_OPTIONS_ADMIN.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -692,12 +697,11 @@ const LeadForm = ({
       </div>
     </div>
 
-    {/* Interested Domain */}
     <div className="space-y-2">
       <Label className="flex items-center gap-2">
         Interested Domain <span className="text-red-500">*</span>
       </Label>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {INTERESTED_DOMAIN_OPTIONS.map((option) => (
           <button
             key={option.value}
@@ -726,14 +730,14 @@ const LeadForm = ({
         <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-2">
           Select the current payment stage. Full payment will automatically mark as Success.
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {PAYMENT_STAGE_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               disabled={isViewMode}
               onClick={() => setFormData((prev: any) => ({ ...prev, payment_stage: option.value }))}
-              className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+              className={`p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all ${
                 formData.payment_stage === option.value
                   ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
                   : 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 text-emerald-600 dark:text-emerald-400'

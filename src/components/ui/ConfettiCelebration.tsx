@@ -52,11 +52,14 @@ const ConfettiCelebration = ({ show, onComplete }: ConfettiCelebrationProps) => 
     <AnimatePresence>
       {show && (
         <motion.div
-          className="fixed inset-0 z-[100] pointer-events-none overflow-hidden"
+          className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
+          {/* Background overlay */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          
           {/* Confetti */}
           {confettiPieces.map((piece) => (
             <Confetti key={piece.id} delay={piece.delay} color={piece.color} startX={piece.startX} />
@@ -64,19 +67,19 @@ const ConfettiCelebration = ({ show, onComplete }: ConfettiCelebrationProps) => 
 
           {/* Center Message */}
           <motion.div
-            className="absolute inset-0 flex items-center justify-center pointer-events-auto"
+            className="absolute inset-0 flex items-center justify-center pointer-events-auto px-4"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: 'spring', damping: 15, stiffness: 300 }}
           >
-            <div className="bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 p-1 rounded-3xl shadow-2xl">
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl px-8 py-6 text-center">
+            <div className="bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 p-1 rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md">
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl px-6 sm:px-8 py-6 text-center">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: [0, 1.2, 1] }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="text-6xl mb-4"
+                  className="text-5xl sm:text-6xl mb-4"
                 >
                   🎉
                 </motion.div>
@@ -84,7 +87,7 @@ const ConfettiCelebration = ({ show, onComplete }: ConfettiCelebrationProps) => 
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3 }}
-                  className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent mb-2"
+                  className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent mb-2"
                 >
                   Congratulations!
                 </motion.h2>
@@ -92,7 +95,7 @@ const ConfettiCelebration = ({ show, onComplete }: ConfettiCelebrationProps) => 
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="text-xl text-white font-semibold"
+                  className="text-lg sm:text-xl text-white font-semibold"
                 >
                   You won ₹10K! 🏆
                 </motion.p>
@@ -100,7 +103,7 @@ const ConfettiCelebration = ({ show, onComplete }: ConfettiCelebrationProps) => 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.5, type: 'spring' }}
-                  className="mt-4 text-4xl"
+                  className="mt-4 text-3xl sm:text-4xl"
                 >
                   💰💸🎊
                 </motion.div>
