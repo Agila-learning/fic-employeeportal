@@ -72,7 +72,7 @@ const Sidebar = () => {
         variant="ghost"
         size="icon"
         className={cn(
-          "fixed top-4 left-4 z-50 md:hidden bg-slate-900 text-white hover:bg-slate-800 shadow-lg transition-all duration-300",
+          "fixed top-4 left-4 z-50 md:hidden bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-500/30 transition-all duration-300 border-2 border-white/20",
           isOpen && "left-[220px]"
         )}
         onClick={() => setIsOpen(!isOpen)}

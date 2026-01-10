@@ -77,7 +77,8 @@ export interface User {
   is_active?: boolean | null;
 }
 
-export const STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
+// Admin-visible status options (excludes different_domain)
+export const STATUS_OPTIONS_ADMIN: { value: LeadStatus; label: string; color: string }[] = [
   { value: 'nc1', label: 'NC1 - First Contact', color: 'bg-blue-100 text-blue-700 border-blue-200' },
   { value: 'nc2', label: 'NC2 - Second Contact', color: 'bg-blue-200 text-blue-800 border-blue-300' },
   { value: 'nc3', label: 'NC3 - Third Contact', color: 'bg-blue-300 text-blue-900 border-blue-400' },
@@ -87,6 +88,11 @@ export const STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }
   { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700 border-red-200' },
   { value: 'not_interested', label: 'Not Interested', color: 'bg-gray-100 text-gray-700 border-gray-200' },
   { value: 'not_interested_paid', label: 'Not Interested (Paid)', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+];
+
+// Full status options (for display purposes)
+export const STATUS_OPTIONS: { value: LeadStatus; label: string; color: string }[] = [
+  ...STATUS_OPTIONS_ADMIN,
   { value: 'different_domain', label: 'Different Domain', color: 'bg-purple-100 text-purple-700 border-purple-200' },
 ];
 
