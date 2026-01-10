@@ -5,7 +5,6 @@ import { useEmployees } from '@/hooks/useEmployees';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeadFormDialog from '@/components/leads/LeadFormDialog';
-import FAQSection from '@/components/dashboard/FAQSection';
 import { Users, FileSpreadsheet, UserCheck, TrendingUp, CheckCircle, Clock, Bell, ArrowRight, Trophy, CreditCard, Briefcase } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,14 @@ const AdminDashboard = () => {
   const nonItPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'non_it').length;
   const bankingPaidCount = leads.filter(l => l.payment_stage === 'full_payment_done' && l.interested_domain === 'banking').length;
 
-  const conversionRate = totalLeads > 0 ? Math.round(((convertedLeads + successLeads) / totalLeads) * 100) : 0;
+  // Calculate conversion rate based on employee success conversions only
+  const totalEmployeeSuccess = employees.reduce((acc, emp) => {
+    return acc + leads.filter(l => l.assigned_to === emp.user_id && l.status === 'success').length;
+  }, 0);
+  const totalEmployeeLeads = employees.reduce((acc, emp) => {
+    return acc + leads.filter(l => l.assigned_to === emp.user_id).length;
+  }, 0);
+  const conversionRate = totalEmployeeLeads > 0 ? Math.round((totalEmployeeSuccess / totalEmployeeLeads) * 100) : 0;
 
   const statusDistribution = STATUS_OPTIONS_ADMIN.map(status => ({
     ...status,
@@ -44,9 +50,10 @@ const AdminDashboard = () => {
 
   const employeePerformance = employees.map(emp => ({
     ...emp,
+    successCount: leads.filter(l => l.assigned_to === emp.user_id && l.status === 'success').length,
     converted: leads.filter(l => l.assigned_to === emp.user_id && (l.status === 'converted' || l.status === 'success')).length,
     total: leads.filter(l => l.assigned_to === emp.user_id).length
-  })).sort((a, b) => b.converted - a.converted).slice(0, 5);
+  })).sort((a, b) => b.successCount - a.successCount).slice(0, 5);
 
   // Get recent leads
   const recentLeads = [...leads]
@@ -324,9 +331,6 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* FAQ Section */}
-        <FAQSection />
       </div>
 
       {/* View Lead Dialog */}

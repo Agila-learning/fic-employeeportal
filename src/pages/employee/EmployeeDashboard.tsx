@@ -10,7 +10,7 @@ import AnnouncementsCard from '@/components/dashboard/AnnouncementsCard';
 import TasksCard from '@/components/dashboard/TasksCard';
 import AnnouncementNotification from '@/components/dashboard/AnnouncementNotification';
 import TaskRemindersNotification from '@/components/dashboard/TaskRemindersNotification';
-import FAQSection from '@/components/dashboard/FAQSection';
+
 import { FileSpreadsheet, CheckCircle, Clock, XCircle, Plus, Bell, ArrowRight, TrendingUp, Sparkles, Trophy, CreditCard, Briefcase } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -350,9 +350,6 @@ const EmployeeDashboard = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* FAQ Section */}
-        <FAQSection />
       </div>
 
       {/* View Lead Dialog */}

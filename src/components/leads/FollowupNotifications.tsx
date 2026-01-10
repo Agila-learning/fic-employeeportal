@@ -34,7 +34,13 @@ const FollowupNotifications = ({ leads, onViewLead }: FollowupNotificationsProps
   const prevUrgentCount = useRef(0);
 
   useEffect(() => {
-    const followupLeads = leads.filter(l => l.followup_date && l.status === 'follow_up');
+    // Exclude leads that are already success or have full payment done
+    const followupLeads = leads.filter(l => {
+      if (!l.followup_date) return false;
+      if (l.status !== 'follow_up') return false;
+      if (l.payment_stage === 'full_payment_done') return false;
+      return true;
+    });
     const notificationItems: NotificationItem[] = [];
     const now = new Date();
 
