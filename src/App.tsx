@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import MobileDesktopPopup from "@/components/ui/MobileDesktopPopup";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -14,8 +15,10 @@ import AdminLeads from "./pages/admin/AdminLeads";
 import AdminTasks from "./pages/admin/AdminTasks";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminAttendance from "./pages/admin/AdminAttendance";
+import AdminFollowups from "./pages/admin/AdminFollowups";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeLeads from "./pages/employee/EmployeeLeads";
+import EmployeeFollowups from "./pages/employee/EmployeeFollowups";
 import AddLead from "./pages/employee/AddLead";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -29,6 +32,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <MobileDesktopPopup />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -42,11 +46,13 @@ const App = () => (
               <Route path="/admin/tasks" element={<AdminTasks />} />
               <Route path="/admin/announcements" element={<AdminAnnouncements />} />
               <Route path="/admin/attendance" element={<AdminAttendance />} />
+              <Route path="/admin/followups" element={<AdminFollowups />} />
               
               {/* Employee Routes */}
               <Route path="/employee" element={<EmployeeDashboard />} />
               <Route path="/employee/leads" element={<EmployeeLeads />} />
               <Route path="/employee/add-lead" element={<AddLead />} />
+              <Route path="/employee/followups" element={<EmployeeFollowups />} />
               
               {/* Common Routes */}
               <Route path="/settings" element={<Settings />} />

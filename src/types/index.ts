@@ -21,6 +21,7 @@ export interface Lead {
   resume_url: string | null;
   notes: string | null;
   followup_date: string | null;
+  followup_count: number | null;
   payment_slip_url: string | null;
   payment_stage: PaymentStage | null;
   interested_domain: InterestedDomain | null;
