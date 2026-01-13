@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { TaskSchema, TaskUpdateSchema, validateInput } from '@/utils/validation';
 
 export interface Task {
   id: string;
@@ -56,12 +57,20 @@ export const useTasks = () => {
   const createTask = async (task: { title: string; description?: string; assigned_to: string; due_date?: string }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
+    // Validate input data
+    const validation = validateInput(TaskSchema, task);
+    if (!validation.success) {
+      toast({ title: 'Validation Error', description: validation.error, variant: 'destructive' });
+      return { error: new Error(validation.error) };
+    }
+
+    const validatedData = validation.data;
     const { error } = await supabase.from('tasks').insert({
-      title: task.title,
-      description: task.description || null,
-      assigned_to: task.assigned_to,
+      title: validatedData.title,
+      description: validatedData.description || null,
+      assigned_to: validatedData.assigned_to,
       assigned_by: user.id,
-      due_date: task.due_date || null
+      due_date: validatedData.due_date || null
     });
 
     if (error) {
@@ -75,13 +84,21 @@ export const useTasks = () => {
   };
 
   const updateTask = async (taskId: string, updates: { title?: string; description?: string; assigned_to?: string; due_date?: string }) => {
+    // Validate input data
+    const validation = validateInput(TaskUpdateSchema, updates);
+    if (!validation.success) {
+      toast({ title: 'Validation Error', description: validation.error, variant: 'destructive' });
+      return { error: new Error(validation.error) };
+    }
+
+    const validatedData = validation.data;
     const { error } = await supabase
       .from('tasks')
       .update({
-        title: updates.title,
-        description: updates.description,
-        assigned_to: updates.assigned_to,
-        due_date: updates.due_date
+        title: validatedData.title,
+        description: validatedData.description,
+        assigned_to: validatedData.assigned_to,
+        due_date: validatedData.due_date
       })
       .eq('id', taskId);
 

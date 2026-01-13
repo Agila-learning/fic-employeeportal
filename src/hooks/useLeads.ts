@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Lead, LeadComment, LeadStatusHistory, LeadStatus, LeadSource, InterestedDomain } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { LeadSchema, LeadUpdateSchema, CommentSchema, validateInput } from '@/utils/validation';
 
 export const useLeads = () => {
   const { user } = useAuth();
@@ -64,26 +65,53 @@ export const useLeads = () => {
   const addLead = async (leadData: Partial<Lead>) => {
     if (!user) return null;
 
+    // Validate input data
+    const validation = validateInput(LeadSchema, {
+      candidate_id: leadData.candidate_id,
+      name: leadData.name,
+      email: leadData.email,
+      phone: leadData.phone,
+      qualification: leadData.qualification,
+      past_experience: leadData.past_experience,
+      current_ctc: leadData.current_ctc,
+      expected_ctc: leadData.expected_ctc,
+      notes: leadData.notes,
+      status: leadData.status || 'nc1',
+      source: leadData.source || 'other',
+      interested_domain: leadData.interested_domain,
+      payment_stage: leadData.payment_stage,
+      resume_url: leadData.resume_url,
+      payment_slip_url: leadData.payment_slip_url,
+      followup_date: leadData.followup_date,
+    });
+
+    if (!validation.success) {
+      toast.error(validation.error);
+      return null;
+    }
+
+    const validatedData = validation.data;
+
     try {
       const { data, error } = await supabase
         .from('leads')
         .insert({
-          candidate_id: leadData.candidate_id!,
-          name: leadData.name!,
-          email: leadData.email!,
-          phone: leadData.phone!,
-          qualification: leadData.qualification,
-          past_experience: leadData.past_experience,
-          current_ctc: leadData.current_ctc,
-          expected_ctc: leadData.expected_ctc,
-          status: leadData.status || 'nc1',
-          source: leadData.source || 'other',
-          notes: leadData.notes,
-          resume_url: leadData.resume_url,
-          followup_date: leadData.followup_date,
-          payment_slip_url: leadData.payment_slip_url,
-          payment_stage: leadData.payment_stage,
-          interested_domain: leadData.interested_domain,
+          candidate_id: validatedData.candidate_id,
+          name: validatedData.name,
+          email: validatedData.email,
+          phone: validatedData.phone,
+          qualification: validatedData.qualification || null,
+          past_experience: validatedData.past_experience || null,
+          current_ctc: validatedData.current_ctc || null,
+          expected_ctc: validatedData.expected_ctc || null,
+          status: validatedData.status || 'nc1',
+          source: validatedData.source || 'other',
+          notes: validatedData.notes || null,
+          resume_url: validatedData.resume_url || null,
+          followup_date: validatedData.followup_date || null,
+          payment_slip_url: validatedData.payment_slip_url || null,
+          payment_stage: validatedData.payment_stage || null,
+          interested_domain: validatedData.interested_domain || null,
           assigned_to: user.id,
           created_by: user.id,
         })
@@ -237,13 +265,21 @@ export const useLeadComments = (leadId: string) => {
   const addComment = async (comment: string) => {
     if (!user) return null;
 
+    const validation = validateInput(CommentSchema, { comment });
+    if (!validation.success) {
+      toast.error(validation.error);
+      return null;
+    }
+
+    const validatedComment = validation.data.comment;
+
     try {
       const { data, error } = await supabase
         .from('lead_comments')
         .insert({
           lead_id: leadId,
           user_id: user.id,
-          comment,
+          comment: validatedComment,
         })
         .select()
         .single();

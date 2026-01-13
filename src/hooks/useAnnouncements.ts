@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { AnnouncementSchema, validateInput } from '@/utils/validation';
 
 export interface Announcement {
   id: string;
@@ -38,9 +39,17 @@ export const useAnnouncements = () => {
   const createAnnouncement = async (announcement: { title: string; message: string }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
+    // Validate input data
+    const validation = validateInput(AnnouncementSchema, announcement);
+    if (!validation.success) {
+      toast({ title: 'Validation Error', description: validation.error, variant: 'destructive' });
+      return { error: new Error(validation.error) };
+    }
+
+    const validatedData = validation.data;
     const { error } = await supabase.from('announcements').insert({
-      title: announcement.title,
-      message: announcement.message,
+      title: validatedData.title,
+      message: validatedData.message,
       created_by: user.id
     });
 

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Profile, UserRole, AppRole } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { ProfileUpdateSchema, validateInput } from '@/utils/validation';
 
 export interface Employee extends Profile {
   role: AppRole;
@@ -72,16 +73,24 @@ export const useEmployees = () => {
   }, [user]);
 
   const updateEmployee = async (userId: string, updates: Partial<Profile>) => {
+    const validation = validateInput(ProfileUpdateSchema, updates);
+    if (!validation.success) {
+      toast.error(validation.error);
+      return false;
+    }
+
+    const validatedData = validation.data;
+
     try {
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update(validatedData)
         .eq('user_id', userId);
 
       if (error) throw error;
 
       setEmployees((prev) =>
-        prev.map((e) => (e.user_id === userId ? { ...e, ...updates } : e))
+        prev.map((e) => (e.user_id === userId ? { ...e, ...validation.data } : e))
       );
       return true;
     } catch (error: any) {
