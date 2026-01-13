@@ -23,10 +23,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Upload, MessageSquare, History, Send, Clock, Calendar, CreditCard, FileImage, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, MessageSquare, History, Send, Clock, Calendar, CreditCard, FileImage, AlertCircle, CheckCircle2, FileWarning } from 'lucide-react';
 import { format } from 'date-fns';
 import ConfettiCelebration from '@/components/ui/ConfettiCelebration';
 import SecureFileLink from '@/components/leads/SecureFileLink';
+import { prepareFileForUpload, validateFile, formatFileSize, deleteOldFile, MAX_FILE_SIZE_BYTES } from '@/utils/fileUtils';
 
 interface LeadFormDialogProps {
   open: boolean;
@@ -169,15 +170,39 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
   }, [formData.payment_stage, formData.status]);
 
   // Store only the file path in DB - signed URLs will be generated on-demand for viewing
-  const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
+  const uploadFile = async (
+    file: File, 
+    bucket: string, 
+    fileType: 'resume' | 'paymentSlip',
+    existingPath?: string
+  ): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
+      // Prepare file with validation and compression
+      const prepared = await prepareFileForUpload(file, fileType, formData.candidate_id);
+      
+      if (!prepared.success || !prepared.file) {
+        toast.error(prepared.error || 'File preparation failed');
+        return null;
+      }
+
+      // Delete old file if replacing
+      if (existingPath) {
+        await deleteOldFile(existingPath);
+      }
+
+      // Show compression info if applicable
+      if (prepared.compressionInfo) {
+        toast.info(prepared.compressionInfo);
+      }
+
+      const fileToUpload = prepared.file;
+      const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${user?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(filePath, file);
+        .upload(filePath, fileToUpload);
 
       if (uploadError) throw uploadError;
 
@@ -253,13 +278,13 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
 
       // Upload resume if selected
       if (resumeFile) {
-        const uploadedUrl = await uploadFile(resumeFile, 'resumes');
+        const uploadedUrl = await uploadFile(resumeFile, 'resumes', 'resume', formData.resume_url || undefined);
         if (uploadedUrl) resumeUrl = uploadedUrl;
       }
 
       // Upload payment slip if selected
       if (paymentSlipFile) {
-        const uploadedUrl = await uploadFile(paymentSlipFile, 'payment-slips');
+        const uploadedUrl = await uploadFile(paymentSlipFile, 'payment-slips', 'paymentSlip', formData.payment_slip_url || undefined);
         if (uploadedUrl) paymentSlipUrl = uploadedUrl;
       }
 
@@ -326,16 +351,33 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
   const handleResumeSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file before accepting
+      const validation = validateFile(file, 'resume');
+      if (!validation.valid) {
+        toast.error(validation.error);
+        e.target.value = ''; // Reset input
+        return;
+      }
       setResumeFile(file);
-      toast.success('Resume selected: ' + file.name);
+      toast.success(`Resume selected: ${file.name} (${formatFileSize(file.size)})`);
     }
   };
 
   const handlePaymentSlipSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file before accepting
+      const validation = validateFile(file, 'paymentSlip');
+      if (!validation.valid) {
+        toast.error(validation.error);
+        e.target.value = ''; // Reset input
+        return;
+      }
       setPaymentSlipFile(file);
-      toast.success('Payment slip selected: ' + file.name);
+      const compressionNote = file.type.startsWith('image/') && file.size > 250 * 1024 
+        ? ' (will be compressed)' 
+        : '';
+      toast.success(`Payment slip selected: ${file.name} (${formatFileSize(file.size)})${compressionNote}`);
     }
   };
 
