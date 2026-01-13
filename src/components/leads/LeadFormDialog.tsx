@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { Upload, MessageSquare, History, Send, Clock, Calendar, CreditCard, FileImage, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import ConfettiCelebration from '@/components/ui/ConfettiCelebration';
+import SecureFileLink from '@/components/leads/SecureFileLink';
 
 interface LeadFormDialogProps {
   open: boolean;
@@ -167,6 +168,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     }
   }, [formData.payment_stage, formData.status]);
 
+  // Store only the file path in DB - signed URLs will be generated on-demand for viewing
   const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
     try {
       const fileExt = file.name.split('.').pop();
@@ -179,20 +181,9 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
 
       if (uploadError) throw uploadError;
 
-      // For payment-slips (private bucket), use signed URLs; for resumes (public bucket), use public URL
-      if (bucket === 'payment-slips') {
-        const { data: signedData, error: signedError } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(filePath, 86400); // 24 hour expiry
-
-        if (signedError) throw signedError;
-        return signedData.signedUrl;
-      } else {
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(filePath);
-        return publicUrl;
-      }
+      // Return path in format "bucket:path" to be stored in DB
+      // Both buckets are private - signed URLs generated on-demand when viewing
+      return `${bucket}:${filePath}`;
     } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error(`[DEV] Error uploading to ${bucket}:`, error);
@@ -201,6 +192,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
       return null;
     }
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -919,13 +911,7 @@ const LeadForm = ({
         </div>
       ) : (
         <div className="text-sm">
-          {formData.resume_url ? (
-            <a href={formData.resume_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              View Resume
-            </a>
-          ) : (
-            <span className="text-muted-foreground">No resume uploaded</span>
-          )}
+          <SecureFileLink storedPath={formData.resume_url} label="View Resume" />
         </div>
       )}
     </div>
@@ -959,13 +945,7 @@ const LeadForm = ({
           </div>
         ) : (
           <div className="text-sm">
-            {formData.payment_slip_url ? (
-              <a href={formData.payment_slip_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                View Payment Slip
-              </a>
-            ) : (
-              <span className="text-muted-foreground">No payment slip uploaded</span>
-            )}
+            <SecureFileLink storedPath={formData.payment_slip_url} label="View Payment Slip" />
           </div>
         )}
       </div>
