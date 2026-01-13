@@ -16,6 +16,7 @@ import AdminTasks from "./pages/admin/AdminTasks";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminAttendance from "./pages/admin/AdminAttendance";
 import AdminFollowups from "./pages/admin/AdminFollowups";
+import AdminStorage from "./pages/admin/AdminStorage";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeLeads from "./pages/employee/EmployeeLeads";
 import EmployeeFollowups from "./pages/employee/EmployeeFollowups";
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/admin/announcements" element={<AdminAnnouncements />} />
               <Route path="/admin/attendance" element={<AdminAttendance />} />
               <Route path="/admin/followups" element={<AdminFollowups />} />
+              <Route path="/admin/storage" element={<AdminStorage />} />
               
               {/* Employee Routes */}
               <Route path="/employee" element={<EmployeeDashboard />} />

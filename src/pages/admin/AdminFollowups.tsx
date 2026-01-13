@@ -141,12 +141,10 @@ const AdminFollowups = () => {
   const todayCount = sortedLeads.filter(l => l.followup_date && isToday(new Date(l.followup_date))).length;
   const maxedOutCount = sortedLeads.filter(l => (l.followup_count || 0) >= MAX_FOLLOWUP_COUNT).length;
 
-  // Get unique employees with followups
-  const employeesWithFollowups = useMemo(() => {
-    const uniqueEmployees = new Set<string>();
-    leads.filter(l => l.status === 'follow_up' && l.assigned_to).forEach(l => uniqueEmployees.add(l.assigned_to!));
-    return Array.from(uniqueEmployees);
-  }, [leads]);
+  // Get all employees (not just those with active followups)
+  const allEmployees = useMemo(() => {
+    return employees.filter(e => e.role === 'employee');
+  }, [employees]);
 
   return (
     <DashboardLayout requiredRole="admin">
@@ -194,7 +192,7 @@ const AdminFollowups = () => {
           </Card>
           <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/30">
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-purple-700 dark:text-purple-400">{employeesWithFollowups.length}</div>
+              <div className="text-2xl font-bold text-purple-700 dark:text-purple-400">{Object.keys(groupedByEmployee).length}</div>
               <p className="text-xs text-purple-600 dark:text-purple-500">Employees Active</p>
             </CardContent>
           </Card>
@@ -219,9 +217,9 @@ const AdminFollowups = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Employees</SelectItem>
-                  {employeesWithFollowups.map(empId => (
-                    <SelectItem key={empId} value={empId}>
-                      {employeeNames[empId] || 'Unknown'}
+                  {allEmployees.map(emp => (
+                    <SelectItem key={emp.user_id} value={emp.user_id}>
+                      {emp.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

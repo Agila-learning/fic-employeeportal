@@ -14,7 +14,8 @@ import {
   Settings,
   Menu,
   X,
-  CalendarClock
+  CalendarClock,
+  HardDrive
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ const Sidebar = () => {
     { to: '/admin/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
     { to: '/admin/attendance', icon: CalendarCheck, label: 'Attendance' },
+    { to: '/admin/storage', icon: HardDrive, label: 'Storage' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
