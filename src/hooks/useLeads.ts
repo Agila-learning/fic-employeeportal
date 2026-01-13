@@ -46,7 +46,9 @@ export const useLeads = () => {
       
       setLeads(leadsWithCreatorNames);
     } catch (error: any) {
-      console.error('Error fetching leads:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error fetching leads:', error);
+      }
       toast.error('Failed to fetch leads');
     } finally {
       setIsLoading(false);
@@ -101,7 +103,9 @@ export const useLeads = () => {
       setLeads((prev) => [data, ...prev]);
       return data;
     } catch (error: any) {
-      console.error('Error adding lead:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error adding lead:', error);
+      }
       toast.error(error.message || 'Failed to add lead');
       return null;
     }
@@ -146,7 +150,9 @@ export const useLeads = () => {
       setLeads((prev) => prev.map((l) => (l.id === id ? data : l)));
       return true;
     } catch (error: any) {
-      console.error('Error updating lead:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error updating lead:', error);
+      }
       toast.error(error.message || 'Failed to update lead');
       return false;
     }
@@ -159,7 +165,9 @@ export const useLeads = () => {
       setLeads((prev) => prev.filter((l) => l.id !== id));
       return true;
     } catch (error: any) {
-      console.error('Error deleting lead:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error deleting lead:', error);
+      }
       toast.error(error.message || 'Failed to delete lead');
       return false;
     }
@@ -212,7 +220,9 @@ export const useLeadComments = (leadId: string) => {
 
       setComments(commentsWithNames);
     } catch (error: any) {
-      console.error('Error fetching comments:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error fetching comments:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -244,7 +254,9 @@ export const useLeadComments = (leadId: string) => {
       setComments((prev) => [newComment, ...prev]);
       return data;
     } catch (error: any) {
-      console.error('Error adding comment:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error adding comment:', error);
+      }
       toast.error('Failed to add comment');
       return null;
     }
@@ -284,7 +296,9 @@ export const useLeadStatusHistory = (leadId: string) => {
 
       setHistory(historyWithNames);
     } catch (error: any) {
-      console.error('Error fetching status history:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error fetching status history:', error);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -54,7 +54,9 @@ export const useEmployees = () => {
 
       setEmployees(employeesWithData);
     } catch (error: any) {
-      console.error('Error fetching employees:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error fetching employees:', error);
+      }
       toast.error('Failed to fetch employees');
     } finally {
       setIsLoading(false);
@@ -83,7 +85,9 @@ export const useEmployees = () => {
       );
       return true;
     } catch (error: any) {
-      console.error('Error updating employee:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error updating employee:', error);
+      }
       toast.error(error.message || 'Failed to update employee');
       return false;
     }
@@ -103,7 +107,9 @@ export const useEmployees = () => {
       );
       return true;
     } catch (error: any) {
-      console.error('Error updating role:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error updating role:', error);
+      }
       toast.error(error.message || 'Failed to update role');
       return false;
     }
@@ -126,7 +132,9 @@ export const useEmployees = () => {
       setEmployees((prev) => prev.filter((e) => e.user_id !== userId));
       return true;
     } catch (error: any) {
-      console.error('Error deleting employee:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error deleting employee:', error);
+      }
       toast.error('Failed to delete employee. Deactivating instead.');
       return toggleEmployeeStatus(userId, false);
     }

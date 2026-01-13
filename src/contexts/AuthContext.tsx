@@ -55,7 +55,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         is_active: profile?.is_active,
       };
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error fetching user data:', error);
+      }
       return null;
     }
   };
