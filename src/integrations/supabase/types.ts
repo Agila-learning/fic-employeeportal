@@ -68,6 +68,47 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_access_audit: {
+        Row: {
+          accessed_at: string
+          accessed_fields: string[] | null
+          action: string
+          id: string
+          ip_address: string | null
+          lead_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_fields?: string[] | null
+          action: string
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string
+          accessed_fields?: string[] | null
+          action?: string
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_access_audit_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_comments: {
         Row: {
           comment: string

@@ -5,6 +5,29 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { LeadSchema, LeadUpdateSchema, CommentSchema, validateInput } from '@/utils/validation';
 
+// Audit logging function for tracking lead data access
+const logLeadAccess = async (
+  userId: string,
+  leadId: string | null,
+  action: 'view' | 'create' | 'update' | 'delete' | 'export',
+  accessedFields?: string[]
+) => {
+  try {
+    await supabase.from('lead_access_audit').insert({
+      user_id: userId,
+      lead_id: leadId,
+      action,
+      accessed_fields: accessedFields || null,
+      user_agent: navigator.userAgent,
+    });
+  } catch (error) {
+    // Silently fail audit logging to not interrupt main operations
+    if (import.meta.env.DEV) {
+      console.error('[DEV] Audit log error:', error);
+    }
+  }
+};
+
 export const useLeads = () => {
   const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -20,6 +43,14 @@ export const useLeads = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      // Log bulk view access for audit trail
+      if (data && data.length > 0) {
+        // Log individual lead views for compliance
+        for (const lead of data.slice(0, 10)) { // Log first 10 for batch views
+          logLeadAccess(user.id, lead.id, 'view', ['name', 'email', 'phone', 'status']);
+        }
+      }
       
       // Fetch creator names for all leads
       const uniqueCreatorIds = [...new Set((data || []).map(lead => lead.created_by).filter(Boolean))];
@@ -128,6 +159,9 @@ export const useLeads = () => {
         notes: 'Lead created',
       });
 
+      // Log lead creation for audit
+      logLeadAccess(user.id, data.id, 'create', ['all_fields']);
+
       setLeads((prev) => [data, ...prev]);
       return data;
     } catch (error: any) {
@@ -175,6 +209,9 @@ export const useLeads = () => {
         });
       }
 
+      // Log lead update for audit
+      logLeadAccess(user.id, id, 'update', Object.keys(updates));
+
       setLeads((prev) => prev.map((l) => (l.id === id ? data : l)));
       return true;
     } catch (error: any) {
@@ -187,7 +224,12 @@ export const useLeads = () => {
   };
 
   const deleteLead = async (id: string) => {
+    if (!user) return false;
+    
     try {
+      // Log deletion for audit before actually deleting
+      logLeadAccess(user.id, id, 'delete', ['all_fields']);
+      
       const { error } = await supabase.from('leads').delete().eq('id', id);
       if (error) throw error;
       setLeads((prev) => prev.filter((l) => l.id !== id));
