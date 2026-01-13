@@ -6,7 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   HardDrive, 
   File, 
   FileText, 
@@ -43,7 +53,10 @@ const AdminStorage = () => {
   const [bucketStats, setBucketStats] = useState<BucketStats[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBucket, setSelectedBucket] = useState<string>('all');
-  const [leadData, setLeadData] = useState<Record<string, { name: string; candidate_id: string; status: string }>>({});
+  const [leadData, setLeadData] = useState<Record<string, { name: string; candidate_id: string; status: string; id: string }>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<(StorageFile & { bucket: string }) | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchStorageData = async () => {
     try {
@@ -87,15 +100,15 @@ const AdminStorage = () => {
         .select('id, name, candidate_id, status, resume_url, payment_slip_url');
 
       if (leads) {
-        const leadMap: Record<string, { name: string; candidate_id: string; status: string }> = {};
+        const leadMap: Record<string, { name: string; candidate_id: string; status: string; id: string }> = {};
         leads.forEach(lead => {
           if (lead.resume_url) {
             const fileName = lead.resume_url.split('/').pop() || '';
-            leadMap[fileName] = { name: lead.name, candidate_id: lead.candidate_id, status: lead.status };
+            leadMap[fileName] = { name: lead.name, candidate_id: lead.candidate_id, status: lead.status, id: lead.id };
           }
           if (lead.payment_slip_url) {
             const fileName = lead.payment_slip_url.split('/').pop() || '';
-            leadMap[fileName] = { name: lead.name, candidate_id: lead.candidate_id, status: lead.status };
+            leadMap[fileName] = { name: lead.name, candidate_id: lead.candidate_id, status: lead.status, id: lead.id };
           }
         });
         setLeadData(leadMap);
@@ -117,6 +130,45 @@ const AdminStorage = () => {
     await fetchStorageData();
     setIsRefreshing(false);
     toast.success('Storage data refreshed');
+  };
+
+  const handleDeleteClick = (file: StorageFile & { bucket: string }) => {
+    setFileToDelete(file);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!fileToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from(fileToDelete.bucket)
+        .remove([fileToDelete.name]);
+
+      if (storageError) throw storageError;
+
+      // Update lead database reference to null
+      const lead = leadData[fileToDelete.name];
+      if (lead) {
+        const updateField = fileToDelete.bucket === 'resumes' ? 'resume_url' : 'payment_slip_url';
+        await supabase
+          .from('leads')
+          .update({ [updateField]: null })
+          .eq('id', lead.id);
+      }
+
+      toast.success(`File "${fileToDelete.name}" deleted successfully`);
+      setDeleteDialogOpen(false);
+      setFileToDelete(null);
+      await fetchStorageData(); // Refresh the list
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error deleting file:', error);
+      toast.error('Failed to delete file');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const totalFiles = bucketStats.reduce((sum, b) => sum + b.fileCount, 0);
@@ -377,6 +429,14 @@ const AdminStorage = () => {
                           {retention.status === 'expired' && <AlertTriangle className="h-3 w-3 mr-1" />}
                           {retention.label}
                         </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          onClick={() => handleDeleteClick(file)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   );
@@ -408,6 +468,47 @@ const AdminStorage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Delete File
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Are you sure you want to delete this file?</p>
+              {fileToDelete && (
+                <div className="p-3 bg-muted rounded-lg mt-2">
+                  <p className="font-medium text-foreground">{fileToDelete.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {fileToDelete.bucket === 'resumes' ? 'Resume' : 'Payment Slip'} • {formatFileSize(getFileSize(fileToDelete))}
+                  </p>
+                  {leadData[fileToDelete.name] && (
+                    <p className="text-xs text-muted-foreground">
+                      Linked to: {leadData[fileToDelete.name].candidate_id} - {leadData[fileToDelete.name].name}
+                    </p>
+                  )}
+                </div>
+              )}
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium mt-2">
+                This action cannot be undone. The file will be permanently deleted.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete File'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
