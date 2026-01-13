@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Lead, STATUS_OPTIONS, STATUS_OPTIONS_ADMIN, SOURCE_OPTIONS, INTERESTED_DOMAIN_OPTIONS, InterestedDomain } from '@/types';
 import { useLeads } from '@/hooks/useLeads';
+import { useEmployees } from '@/hooks/useEmployees';
 import {
   Table,
   TableBody,
@@ -23,12 +24,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import LeadStatusBadge from './LeadStatusBadge';
 import LeadFormDialog from './LeadFormDialog';
 import TypewriterPlaceholder from '@/components/ui/TypewriterPlaceholder';
-import { MoreHorizontal, Pencil, Trash2, Eye, Download, Filter, Search, CalendarDays } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Eye, Download, Filter, Search, CalendarDays, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { startOfDay, startOfWeek, startOfMonth, isAfter, parseISO } from 'date-fns';
+import { startOfDay, startOfWeek, startOfMonth, isAfter, parseISO, format } from 'date-fns';
 
 const SEARCH_PLACEHOLDERS = [
   'Search by name...',
@@ -47,6 +49,7 @@ interface LeadsTableProps {
 type DateFilterType = 'all' | 'today' | 'this_week' | 'this_month';
 
 const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps) => {
+  const { employees } = useEmployees();
   const { deleteLead } = useLeads();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -54,6 +57,8 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
   const [successDateFilter, setSuccessDateFilter] = useState<DateFilterType>('all');
   const [rejectedDateFilter, setRejectedDateFilter] = useState<DateFilterType>('all');
   const [domainFilter, setDomainFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('');
+  const [employeeFilter, setEmployeeFilter] = useState<string>('all');
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
 
@@ -118,9 +123,19 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
       // Domain filter
       const matchesDomain = domainFilter === 'all' || lead.interested_domain === domainFilter;
       
-      return matchesSearch && matchesStatus && matchesSource && matchesSuccessDate && matchesRejectedDate && matchesDomain;
+      // Specific date filter
+      let matchesDateFilter = true;
+      if (dateFilter) {
+        const leadDate = format(parseISO(lead.created_at), 'yyyy-MM-dd');
+        matchesDateFilter = leadDate === dateFilter;
+      }
+
+      // Employee filter (for admin)
+      const matchesEmployee = employeeFilter === 'all' || lead.created_by === employeeFilter;
+      
+      return matchesSearch && matchesStatus && matchesSource && matchesSuccessDate && matchesRejectedDate && matchesDomain && matchesDateFilter && matchesEmployee;
     });
-  }, [leads, searchTerm, statusFilter, sourceFilter, successDateFilter, rejectedDateFilter, domainFilter]);
+  }, [leads, searchTerm, statusFilter, sourceFilter, successDateFilter, rejectedDateFilter, domainFilter, dateFilter, employeeFilter]);
 
   const handleDelete = async (id: string) => {
     const success = await deleteLead(id);
@@ -131,12 +146,12 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
   };
 
   const exportToExcel = () => {
-    const headers = ['Candidate ID', 'Name', 'Email', 'Phone', 'Qualification', 'Experience', 'Current CTC', 'Expected CTC', 'Status', 'Payment Stage', 'Domain', 'Source'];
+    const headers = ['Candidate ID', 'Name', 'Email', 'Phone', 'Qualification', 'Experience', 'Current CTC', 'Expected CTC', 'Status', 'Payment Stage', 'Domain', 'Source', 'Referred By', 'Created Date'];
     const csvContent = [
       headers.join(','),
       ...filteredLeads.map(lead => [
         lead.candidate_id,
-        lead.name,
+        `"${lead.name}"`,
         lead.email,
         lead.phone,
         lead.qualification || '',
@@ -147,15 +162,50 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
         lead.payment_stage || '',
         INTERESTED_DOMAIN_OPTIONS.find(d => d.value === lead.interested_domain)?.label || lead.interested_domain || '',
         SOURCE_OPTIONS.find(s => s.value === lead.source)?.label || lead.source,
+        `"${lead.created_by_name || ''}"`,
+        format(parseISO(lead.created_at), 'yyyy-MM-dd'),
       ].join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `fic_leads_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `fic_leads_${dateFilter || new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     toast.success('Leads exported successfully');
+  };
+
+  // Daily report export
+  const exportDailyReport = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const todayLeads = leads.filter(lead => format(parseISO(lead.created_at), 'yyyy-MM-dd') === today);
+    
+    if (todayLeads.length === 0) {
+      toast.error('No leads created today');
+      return;
+    }
+
+    const headers = ['Candidate ID', 'Name', 'Email', 'Phone', 'Status', 'Domain', 'Source', 'Referred By'];
+    const csvContent = [
+      headers.join(','),
+      ...todayLeads.map(lead => [
+        lead.candidate_id,
+        `"${lead.name}"`,
+        lead.email,
+        lead.phone,
+        STATUS_OPTIONS.find(s => s.value === lead.status)?.label || lead.status,
+        INTERESTED_DOMAIN_OPTIONS.find(d => d.value === lead.interested_domain)?.label || lead.interested_domain || '',
+        SOURCE_OPTIONS.find(s => s.value === lead.source)?.label || lead.source,
+        `"${lead.created_by_name || ''}"`,
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `fic_daily_report_${today}.csv`;
+    link.click();
+    toast.success(`Daily report exported (${todayLeads.length} leads)`);
   };
 
   // Count success and rejected leads (excluding different_domain from rejected)
@@ -215,9 +265,54 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
             <Download className="h-4 w-4" />
             Export
           </Button>
+
+          <Button onClick={exportDailyReport} variant="outline" className="gap-2 hover:bg-green-600 hover:text-white transition-all duration-300 hover:shadow-md w-full sm:w-auto border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
+            <CalendarDays className="h-4 w-4" />
+            Daily Report
+          </Button>
         </div>
 
         {/* Date Filters and Domain Filter */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2 border-t border-border/50">
+          {/* Specific Date Filter */}
+          <div className="flex items-center gap-2 flex-1">
+            <CalendarDays className="h-4 w-4 text-primary hidden sm:block" />
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full sm:w-auto"
+              placeholder="Filter by date"
+            />
+            {dateFilter && (
+              <Button variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-xs">
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {/* Employee Filter (only for admin) */}
+          {showAssignee && employees.length > 0 && (
+            <div className="flex items-center gap-2 flex-1">
+              <Users className="h-4 w-4 text-amber-600 hidden sm:block" />
+              <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                <SelectTrigger className="w-full sm:w-[180px] transition-all duration-300 hover:border-amber-500/50 border-amber-200 dark:border-amber-900">
+                  <SelectValue placeholder="Filter by employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {employees.filter(e => e.is_active).map(emp => (
+                    <SelectItem key={emp.user_id} value={emp.user_id}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {/* Success/Rejected Filters and Domain Filter */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2 border-t border-border/50">
           <div className="flex items-center gap-2 flex-1">
             <CalendarDays className="h-4 w-4 text-green-600 hidden sm:block" />

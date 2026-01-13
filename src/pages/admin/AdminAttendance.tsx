@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAttendance } from '@/hooks/useAttendance';
+import { useAttendance, Attendance } from '@/hooks/useAttendance';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText } from 'lucide-react';
+import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import AttendanceEditDialog from '@/components/attendance/AttendanceEditDialog';
 
 const AdminAttendance = () => {
-  const { attendance, loading } = useAttendance();
+  const { attendance, loading, updateAttendance } = useAttendance();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
+  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
   const { toast } = useToast();
 
   const filteredAttendance = attendance.filter(a => {
@@ -105,7 +107,7 @@ const AdminAttendance = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Attendance Management</h1>
-            <p className="text-muted-foreground mt-1">View and track employee attendance</p>
+            <p className="text-muted-foreground mt-1">View, edit, and track employee attendance</p>
           </div>
           <Button onClick={exportToCSV} className="gap-2">
             <Download className="h-4 w-4" />
@@ -249,6 +251,7 @@ const AdminAttendance = () => {
                     <TableHead>Status</TableHead>
                     <TableHead>Marked At</TableHead>
                     <TableHead>Leave Reason</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,6 +264,16 @@ const AdminAttendance = () => {
                       <TableCell className="max-w-[200px] truncate">
                         {record.leave_reason || '-'}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingAttendance(record)}
+                          className="h-8 w-8 hover:bg-primary/10"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -269,6 +282,14 @@ const AdminAttendance = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Dialog */}
+      <AttendanceEditDialog
+        attendance={editingAttendance}
+        open={!!editingAttendance}
+        onOpenChange={(open) => !open && setEditingAttendance(null)}
+        onSave={updateAttendance}
+      />
     </DashboardLayout>
   );
 };

@@ -129,6 +129,41 @@ export const useAttendance = () => {
     return { error: null };
   };
 
+  // Admin function to update attendance
+  const updateAttendance = async (id: string, status: 'present' | 'absent', leaveReason?: string) => {
+    if (!user || user.role !== 'admin') {
+      toast({ title: 'Error', description: 'Unauthorized', variant: 'destructive' });
+      return { error: new Error('Unauthorized') };
+    }
+
+    // Require leave reason for absent status
+    if (status === 'absent' && !leaveReason?.trim()) {
+      toast({ 
+        title: 'Reason Required', 
+        description: 'Please provide a reason for leave', 
+        variant: 'destructive' 
+      });
+      return { error: new Error('Leave reason required') };
+    }
+
+    const { error } = await supabase
+      .from('attendance')
+      .update({
+        status,
+        leave_reason: status === 'absent' ? leaveReason : null
+      })
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return { error };
+    }
+
+    toast({ title: 'Success', description: 'Attendance updated successfully' });
+    fetchAttendance();
+    return { error: null };
+  };
+
   const canMarkAttendance = () => {
     const now = new Date();
     return now.getHours() < 11 && !todayAttendance;
@@ -138,5 +173,5 @@ export const useAttendance = () => {
     if (user) fetchAttendance();
   }, [user]);
 
-  return { attendance, todayAttendance, loading, fetchAttendance, markAttendance, canMarkAttendance };
+  return { attendance, todayAttendance, loading, fetchAttendance, markAttendance, updateAttendance, canMarkAttendance };
 };
