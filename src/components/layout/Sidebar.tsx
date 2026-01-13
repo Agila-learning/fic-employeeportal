@@ -63,6 +63,8 @@ const Sidebar = () => {
     { to: '/employee/leads', icon: FileSpreadsheet, label: 'My Leads' },
     { to: '/employee/followups', icon: CalendarClock, label: 'Follow-ups' },
     { to: '/employee/add-lead', icon: UserPlus, label: 'Add Lead' },
+    { to: '/employee/attendance', icon: CalendarCheck, label: 'Attendance' },
+    { to: '/employee/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 

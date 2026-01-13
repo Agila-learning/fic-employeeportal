@@ -19,6 +19,8 @@ import AdminFollowups from "./pages/admin/AdminFollowups";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeLeads from "./pages/employee/EmployeeLeads";
 import EmployeeFollowups from "./pages/employee/EmployeeFollowups";
+import EmployeeAttendance from "./pages/employee/EmployeeAttendance";
+import EmployeeTasks from "./pages/employee/EmployeeTasks";
 import AddLead from "./pages/employee/AddLead";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -53,6 +55,8 @@ const App = () => (
               <Route path="/employee/leads" element={<EmployeeLeads />} />
               <Route path="/employee/add-lead" element={<AddLead />} />
               <Route path="/employee/followups" element={<EmployeeFollowups />} />
+              <Route path="/employee/attendance" element={<EmployeeAttendance />} />
+              <Route path="/employee/tasks" element={<EmployeeTasks />} />
               
               {/* Common Routes */}
               <Route path="/settings" element={<Settings />} />
