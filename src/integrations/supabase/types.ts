@@ -71,9 +71,16 @@ export type Database = {
       employee_reports: {
         Row: {
           afternoon_description: string | null
+          agent_name: string | null
+          candidate_name: string | null
+          candidates_screened: number | null
+          comments: string | null
           created_at: string
           department: Database["public"]["Enums"]["department"]
+          domain: string | null
           id: string
+          location: string | null
+          mobile_number: string | null
           morning_description: string | null
           report_date: string
           updated_at: string
@@ -81,9 +88,16 @@ export type Database = {
         }
         Insert: {
           afternoon_description?: string | null
+          agent_name?: string | null
+          candidate_name?: string | null
+          candidates_screened?: number | null
+          comments?: string | null
           created_at?: string
           department: Database["public"]["Enums"]["department"]
+          domain?: string | null
           id?: string
+          location?: string | null
+          mobile_number?: string | null
           morning_description?: string | null
           report_date?: string
           updated_at?: string
@@ -91,9 +105,16 @@ export type Database = {
         }
         Update: {
           afternoon_description?: string | null
+          agent_name?: string | null
+          candidate_name?: string | null
+          candidates_screened?: number | null
+          comments?: string | null
           created_at?: string
           department?: Database["public"]["Enums"]["department"]
+          domain?: string | null
           id?: string
+          location?: string | null
+          mobile_number?: string | null
           morning_description?: string | null
           report_date?: string
           updated_at?: string
