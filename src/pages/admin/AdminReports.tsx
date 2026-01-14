@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,11 +10,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarIcon, Download, RefreshCw, FileSpreadsheet, Users, Building2, User, Phone, MapPin, Briefcase, MessageSquare } from 'lucide-react';
+import { CalendarIcon, Download, RefreshCw, FileSpreadsheet, Users, Building2, User, Phone, MapPin, Briefcase, MessageSquare, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Department = 'BDA' | 'HR' | 'Tech' | 'Ops' | 'Marketing' | 'Finance' | 'Other';
@@ -26,16 +26,20 @@ interface EmployeeReport {
   department: Department;
   morning_description: string | null;
   afternoon_description: string | null;
-  candidate_name: string | null;
-  agent_name: string | null;
-  mobile_number: string | null;
-  location: string | null;
-  domain: string | null;
-  comments: string | null;
   candidates_screened: number | null;
   created_at: string;
   updated_at: string;
   employee_name?: string;
+}
+
+interface CandidateEntry {
+  id: string;
+  candidate_name: string;
+  mobile_number: string;
+  domain: string;
+  agent_name: string | null;
+  location: string | null;
+  comments: string | null;
 }
 
 interface Profile {
@@ -51,13 +55,14 @@ const AdminReports = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<EmployeeReport | null>(null);
+  const [viewCandidates, setViewCandidates] = useState<CandidateEntry[]>([]);
   
   // Filters
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -70,20 +75,24 @@ const AdminReports = () => {
         console.error('[DEV] Error fetching profiles:', error);
       }
     }
-  };
+  }, []);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     if (!user || user.role !== 'admin') return;
     
     setIsLoading(true);
     try {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      
       let query = supabase
         .from('employee_reports')
         .select('*')
-        .eq('report_date', dateStr)
+        .order('report_date', { ascending: false })
         .order('created_at', { ascending: false });
+
+      // Apply date filter if selected
+      if (selectedDate) {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        query = query.eq('report_date', dateStr);
+      }
 
       if (selectedDepartment !== 'all') {
         query = query.eq('department', selectedDepartment as Department);
@@ -112,17 +121,46 @@ const AdminReports = () => {
     } finally {
       setIsLoading(false);
     }
+  }, [user, selectedDate, selectedDepartment, selectedEmployee, profiles]);
+
+  const fetchCandidateEntries = async (reportId: string, reportDate: string, userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('bda_candidate_entries')
+        .select('*')
+        .eq('report_date', reportDate)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as CandidateEntry[];
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error('[DEV] Error fetching candidate entries:', error);
+      }
+      return [];
+    }
   };
 
   useEffect(() => {
     fetchProfiles();
-  }, []);
+  }, [fetchProfiles]);
 
   useEffect(() => {
     if (profiles.length > 0) {
       fetchReports();
     }
-  }, [user, selectedDate, selectedDepartment, selectedEmployee, profiles]);
+  }, [fetchReports, profiles]);
+
+  const handleViewReport = async (report: EmployeeReport) => {
+    setSelectedReport(report);
+    if (report.department === 'BDA' || report.department === 'HR') {
+      const entries = await fetchCandidateEntries(report.id, report.report_date, report.user_id);
+      setViewCandidates(entries);
+    } else {
+      setViewCandidates([]);
+    }
+  };
 
   // Group reports by department
   const reportsByDepartment = DEPARTMENTS.reduce((acc, dept) => {
@@ -135,55 +173,81 @@ const AdminReports = () => {
     .filter(r => r.department === 'HR' && r.candidates_screened)
     .reduce((sum, r) => sum + (r.candidates_screened || 0), 0);
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (reports.length === 0) {
       toast.error('No reports to export');
       return;
     }
 
-    const exportData = reports.map(report => ({
+    // Fetch all candidate entries for BDA/HR reports
+    const bdaHrReports = reports.filter(r => r.department === 'BDA' || r.department === 'HR');
+    const allCandidateEntries: { report: EmployeeReport; entries: CandidateEntry[] }[] = [];
+
+    for (const report of bdaHrReports) {
+      const entries = await fetchCandidateEntries(report.id, report.report_date, report.user_id);
+      allCandidateEntries.push({ report, entries });
+    }
+
+    // Main reports sheet
+    const mainExportData = reports.map(report => ({
       'Date': format(new Date(report.report_date), 'dd/MM/yyyy'),
       'Employee Name': report.employee_name,
       'Department': report.department,
       'Morning Report': report.morning_description || '-',
       'Afternoon Report': report.afternoon_description || '-',
-      'Candidate Name': report.candidate_name || '-',
-      'Agent Name': report.agent_name || '-',
-      'Mobile Number': report.mobile_number || '-',
-      'Location': report.location || '-',
-      'Domain': report.domain || '-',
-      'Candidates Screened': report.candidates_screened ?? '-',
-      'Comments': report.comments || '-',
+      'Candidates Screened (HR)': report.candidates_screened ?? '-',
       'Submitted At': format(new Date(report.created_at), 'dd/MM/yyyy HH:mm'),
       'Last Updated': format(new Date(report.updated_at), 'dd/MM/yyyy HH:mm'),
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Reports');
+    // Candidate entries sheet (for BDA/HR)
+    const candidateExportData: any[] = [];
+    for (const { report, entries } of allCandidateEntries) {
+      for (const entry of entries) {
+        candidateExportData.push({
+          'Date': format(new Date(report.report_date), 'dd/MM/yyyy'),
+          'Employee Name': report.employee_name,
+          'Department': report.department,
+          'Candidate Name': entry.candidate_name,
+          'Mobile Number': entry.mobile_number,
+          'Domain': entry.domain,
+          'Agent Name': entry.agent_name || '-',
+          'Location': entry.location || '-',
+          'Comments': entry.comments || '-',
+        });
+      }
+    }
 
-    // Auto-size columns
-    const colWidths = [
-      { wch: 12 },
-      { wch: 25 },
-      { wch: 12 },
-      { wch: 50 },
-      { wch: 50 },
-      { wch: 25 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 18 },
-      { wch: 40 },
-      { wch: 18 },
-      { wch: 18 },
+    const wb = XLSX.utils.book_new();
+    
+    // Main reports sheet
+    const ws1 = XLSX.utils.json_to_sheet(mainExportData);
+    ws1['!cols'] = [
+      { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 50 }, { wch: 50 },
+      { wch: 20 }, { wch: 18 }, { wch: 18 },
     ];
-    ws['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(wb, ws1, 'Reports');
+
+    // Candidate entries sheet
+    if (candidateExportData.length > 0) {
+      const ws2 = XLSX.utils.json_to_sheet(candidateExportData);
+      ws2['!cols'] = [
+        { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 25 }, { wch: 15 },
+        { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 40 },
+      ];
+      XLSX.utils.book_append_sheet(wb, ws2, 'BDA-HR Candidates');
+    }
 
     const timestamp = format(new Date(), 'yyyy-MM-dd_HHmm');
-    XLSX.writeFile(wb, `Daily_Reports_${format(selectedDate, 'yyyy-MM-dd')}_exported_${timestamp}.xlsx`);
+    const dateLabel = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : 'all-dates';
+    XLSX.writeFile(wb, `Daily_Reports_${dateLabel}_exported_${timestamp}.xlsx`);
     toast.success('Report exported successfully');
+  };
+
+  const clearFilters = () => {
+    setSelectedDate(undefined);
+    setSelectedDepartment('all');
+    setSelectedEmployee('all');
   };
 
   const totalReports = reports.length;
@@ -220,7 +284,7 @@ const AdminReports = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{totalReports}</p>
-                  <p className="text-xs text-muted-foreground">Reports Today</p>
+                  <p className="text-xs text-muted-foreground">Total Reports</p>
                 </div>
               </div>
             </CardContent>
@@ -268,8 +332,13 @@ const AdminReports = () => {
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Filters</CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Filters</CardTitle>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear All
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -280,14 +349,14 @@ const AdminReports = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left font-normal">
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(selectedDate, 'PPP')}
+                      {selectedDate ? format(selectedDate, 'PPP') : 'All Dates'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
+                      onSelect={setSelectedDate}
                       disabled={(date) => date > new Date()}
                       initialFocus
                     />
@@ -335,26 +404,28 @@ const AdminReports = () => {
         {/* Reports Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Reports for {format(selectedDate, 'MMMM d, yyyy')}</CardTitle>
+            <CardTitle>
+              Reports {selectedDate ? `for ${format(selectedDate, 'MMMM d, yyyy')}` : '(All Dates)'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : reports.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No reports found for this date
+                No reports found for the selected filters
               </div>
             ) : (
               <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Date</TableHead>
                       <TableHead>Employee</TableHead>
                       <TableHead>Department</TableHead>
                       <TableHead>Morning Report</TableHead>
                       <TableHead>Afternoon Report</TableHead>
                       <TableHead>Details</TableHead>
-                      <TableHead>Submitted</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -363,6 +434,9 @@ const AdminReports = () => {
                       
                       return (
                         <TableRow key={report.id}>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {format(new Date(report.report_date), 'dd MMM yyyy')}
+                          </TableCell>
                           <TableCell className="font-medium">{report.employee_name}</TableCell>
                           <TableCell>
                             <Badge 
@@ -385,130 +459,13 @@ const AdminReports = () => {
                             </p>
                           </TableCell>
                           <TableCell>
-                            {isBDAorHR ? (
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => setSelectedReport(report)}
-                                  >
-                                    View Details
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-lg">
-                                  <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-2">
-                                      <Briefcase className="h-5 w-5 text-primary" />
-                                      {report.department} Report Details
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <ScrollArea className="max-h-[60vh]">
-                                    <div className="space-y-4 p-1">
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                            <User className="h-3 w-3" /> Employee
-                                          </p>
-                                          <p className="font-medium">{report.employee_name}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                            <CalendarIcon className="h-3 w-3" /> Date
-                                          </p>
-                                          <p className="font-medium">{format(new Date(report.report_date), 'dd MMM yyyy')}</p>
-                                        </div>
-                                      </div>
-
-                                      <div className="border-t pt-4">
-                                        <h4 className="font-medium mb-3 text-sm text-muted-foreground">Candidate / Agent Details</h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-1">
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                              <User className="h-3 w-3" /> Candidate Name
-                                            </p>
-                                            <p className="font-medium">{report.candidate_name || '-'}</p>
-                                          </div>
-                                          <div className="space-y-1">
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                              <User className="h-3 w-3" /> Agent Name
-                                            </p>
-                                            <p className="font-medium">{report.agent_name || '-'}</p>
-                                          </div>
-                                          <div className="space-y-1">
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                              <Phone className="h-3 w-3" /> Mobile
-                                            </p>
-                                            <p className="font-medium">{report.mobile_number || '-'}</p>
-                                          </div>
-                                          <div className="space-y-1">
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                              <MapPin className="h-3 w-3" /> Location
-                                            </p>
-                                            <p className="font-medium">{report.location || '-'}</p>
-                                          </div>
-                                          <div className="space-y-1">
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                              <Briefcase className="h-3 w-3" /> Domain
-                                            </p>
-                                            <p className="font-medium">{report.domain || '-'}</p>
-                                          </div>
-                                          {report.department === 'HR' && (
-                                            <div className="space-y-1">
-                                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                <Users className="h-3 w-3" /> Candidates Screened
-                                              </p>
-                                              <p className="font-medium text-primary">{report.candidates_screened ?? '-'}</p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {report.comments && (
-                                        <div className="border-t pt-4">
-                                          <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-                                            <MessageSquare className="h-3 w-3" /> Comments
-                                          </p>
-                                          <p className="text-sm bg-muted p-3 rounded-lg">{report.comments}</p>
-                                        </div>
-                                      )}
-
-                                      <div className="border-t pt-4">
-                                        <h4 className="font-medium mb-3 text-sm text-muted-foreground">Work Reports</h4>
-                                        <div className="space-y-3">
-                                          <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Morning</p>
-                                            <p className="text-sm bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg">
-                                              {report.morning_description || '-'}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <p className="text-xs text-muted-foreground mb-1">Afternoon</p>
-                                            <p className="text-sm bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
-                                              {report.afternoon_description || '-'}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      <div className="border-t pt-4 text-xs text-muted-foreground">
-                                        Submitted: {format(new Date(report.created_at), 'dd MMM yyyy, HH:mm')}
-                                        {report.updated_at !== report.created_at && (
-                                          <span className="ml-2">
-                                            | Updated: {format(new Date(report.updated_at), 'dd MMM yyyy, HH:mm')}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </ScrollArea>
-                                </DialogContent>
-                              </Dialog>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {format(new Date(report.created_at), 'HH:mm')}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewReport(report)}
+                            >
+                              View Details
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
@@ -519,6 +476,134 @@ const AdminReports = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* View Report Dialog */}
+        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-primary" />
+                Report Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedReport && (
+              <ScrollArea className="max-h-[70vh]">
+                <div className="space-y-4 p-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <User className="h-3 w-3" /> Employee
+                      </p>
+                      <p className="font-medium">{selectedReport.employee_name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <CalendarIcon className="h-3 w-3" /> Date
+                      </p>
+                      <p className="font-medium">{format(new Date(selectedReport.report_date), 'dd MMM yyyy')}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Department</p>
+                      <Badge>{selectedReport.department}</Badge>
+                    </div>
+                    {selectedReport.department === 'HR' && selectedReport.candidates_screened && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Candidates Screened</p>
+                        <Badge variant="secondary">{selectedReport.candidates_screened}</Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Candidate Entries for BDA/HR */}
+                  {(selectedReport.department === 'BDA' || selectedReport.department === 'HR') && viewCandidates.length > 0 && (
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-3 text-sm text-muted-foreground">
+                        Candidate Entries ({viewCandidates.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {viewCandidates.map((entry, index) => (
+                          <Card key={entry.id || index} className="p-3 bg-muted/50">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                              <div>
+                                <span className="text-muted-foreground flex items-center gap-1">
+                                  <User className="h-3 w-3" /> Candidate
+                                </span>
+                                <span className="font-medium">{entry.candidate_name}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground flex items-center gap-1">
+                                  <Phone className="h-3 w-3" /> Mobile
+                                </span>
+                                <span className="font-medium">{entry.mobile_number}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground flex items-center gap-1">
+                                  <Briefcase className="h-3 w-3" /> Domain
+                                </span>
+                                <Badge variant="outline">{entry.domain}</Badge>
+                              </div>
+                              {entry.agent_name && (
+                                <div>
+                                  <span className="text-muted-foreground">Agent</span>
+                                  <p>{entry.agent_name}</p>
+                                </div>
+                              )}
+                              {entry.location && (
+                                <div>
+                                  <span className="text-muted-foreground flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" /> Location
+                                  </span>
+                                  <p>{entry.location}</p>
+                                </div>
+                              )}
+                              {entry.comments && (
+                                <div className="col-span-full">
+                                  <span className="text-muted-foreground flex items-center gap-1">
+                                    <MessageSquare className="h-3 w-3" /> Comments
+                                  </span>
+                                  <p>{entry.comments}</p>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedReport.department === 'BDA' || selectedReport.department === 'HR') && viewCandidates.length === 0 && (
+                    <div className="border-t pt-4">
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No candidate entries found for this report.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-4 space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm flex items-center gap-2 mb-2">
+                        <Sun className="h-4 w-4 text-amber-500" />
+                        Morning Report
+                      </h4>
+                      <p className="text-sm bg-muted/50 p-3 rounded-md whitespace-pre-wrap">
+                        {selectedReport.morning_description || 'No morning report submitted.'}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm flex items-center gap-2 mb-2">
+                        <Moon className="h-4 w-4 text-blue-500" />
+                        Afternoon Report
+                      </h4>
+                      <p className="text-sm bg-muted/50 p-3 rounded-md whitespace-pre-wrap">
+                        {selectedReport.afternoon_description || 'No afternoon report submitted.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
