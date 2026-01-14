@@ -23,6 +23,7 @@ import EmployeeFollowups from "./pages/employee/EmployeeFollowups";
 import EmployeeAttendance from "./pages/employee/EmployeeAttendance";
 import EmployeeTasks from "./pages/employee/EmployeeTasks";
 import AddLead from "./pages/employee/AddLead";
+import EmployeeInvoice from "./pages/employee/EmployeeInvoice";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/employee/followups" element={<EmployeeFollowups />} />
               <Route path="/employee/attendance" element={<EmployeeAttendance />} />
               <Route path="/employee/tasks" element={<EmployeeTasks />} />
+              <Route path="/employee/invoice" element={<EmployeeInvoice />} />
               
               {/* Common Routes */}
               <Route path="/settings" element={<Settings />} />
