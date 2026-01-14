@@ -1,22 +1,26 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAttendance, Attendance } from '@/hooks/useAttendance';
+import { useEmployees } from '@/hooks/useEmployees';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText, Pencil } from 'lucide-react';
+import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText, Pencil, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import AttendanceEditDialog from '@/components/attendance/AttendanceEditDialog';
+import AdminMarkAttendanceDialog from '@/components/attendance/AdminMarkAttendanceDialog';
 import * as XLSX from 'xlsx';
 
 const AdminAttendance = () => {
-  const { attendance, loading, updateAttendance } = useAttendance();
+  const { attendance, loading, updateAttendance, adminMarkAttendance } = useAttendance();
+  const { employees } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
+  const [showMarkDialog, setShowMarkDialog] = useState(false);
   const { toast } = useToast();
 
   const filteredAttendance = attendance.filter(a => {
@@ -113,15 +117,21 @@ const AdminAttendance = () => {
   return (
     <DashboardLayout requiredRole="admin">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Attendance Management</h1>
             <p className="text-muted-foreground mt-1">View, edit, and track employee attendance</p>
           </div>
-          <Button onClick={exportToExcel} className="gap-2">
-            <Download className="h-4 w-4" />
-            Export Excel
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowMarkDialog(true)} variant="default" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Mark Attendance
+            </Button>
+            <Button onClick={exportToExcel} variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export Excel
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -298,6 +308,14 @@ const AdminAttendance = () => {
         open={!!editingAttendance}
         onOpenChange={(open) => !open && setEditingAttendance(null)}
         onSave={updateAttendance}
+      />
+
+      {/* Mark Attendance Dialog */}
+      <AdminMarkAttendanceDialog
+        open={showMarkDialog}
+        onOpenChange={setShowMarkDialog}
+        employees={employees}
+        onSave={adminMarkAttendance}
       />
     </DashboardLayout>
   );

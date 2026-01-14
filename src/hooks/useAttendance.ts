@@ -164,6 +164,73 @@ export const useAttendance = () => {
     return { error: null };
   };
 
+  // Admin function to manually mark attendance for an employee (bypasses time restriction)
+  const adminMarkAttendance = async (
+    employeeId: string, 
+    status: 'present' | 'absent', 
+    date: string,
+    leaveReason?: string
+  ) => {
+    if (!user || user.role !== 'admin') {
+      toast({ title: 'Error', description: 'Unauthorized', variant: 'destructive' });
+      return { error: new Error('Unauthorized') };
+    }
+
+    // Require leave reason for absent status
+    if (status === 'absent' && !leaveReason?.trim()) {
+      toast({ 
+        title: 'Reason Required', 
+        description: 'Please provide a reason for leave', 
+        variant: 'destructive' 
+      });
+      return { error: new Error('Leave reason required') };
+    }
+
+    // Check if attendance already exists for this employee on this date
+    const { data: existing } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('user_id', employeeId)
+      .eq('date', date)
+      .maybeSingle();
+
+    if (existing) {
+      // Update existing record
+      const { error } = await supabase
+        .from('attendance')
+        .update({
+          status,
+          leave_reason: status === 'absent' ? leaveReason : null
+        })
+        .eq('id', existing.id);
+
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        return { error };
+      }
+
+      toast({ title: 'Success', description: 'Attendance updated successfully' });
+    } else {
+      // Create new record
+      const { error } = await supabase.from('attendance').insert({
+        user_id: employeeId,
+        status,
+        date,
+        leave_reason: status === 'absent' ? leaveReason : null
+      });
+
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        return { error };
+      }
+
+      toast({ title: 'Success', description: 'Attendance marked successfully' });
+    }
+
+    fetchAttendance();
+    return { error: null };
+  };
+
   const canMarkAttendance = () => {
     const now = new Date();
     return now.getHours() < 11 && !todayAttendance;
@@ -173,5 +240,14 @@ export const useAttendance = () => {
     if (user) fetchAttendance();
   }, [user]);
 
-  return { attendance, todayAttendance, loading, fetchAttendance, markAttendance, updateAttendance, canMarkAttendance };
+  return { 
+    attendance, 
+    todayAttendance, 
+    loading, 
+    fetchAttendance, 
+    markAttendance, 
+    updateAttendance, 
+    adminMarkAttendance,
+    canMarkAttendance 
+  };
 };
