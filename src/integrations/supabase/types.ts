@@ -68,6 +68,56 @@ export type Database = {
         }
         Relationships: []
       }
+      bda_candidate_entries: {
+        Row: {
+          agent_name: string | null
+          candidate_name: string
+          comments: string | null
+          created_at: string
+          domain: string
+          id: string
+          location: string | null
+          mobile_number: string
+          report_date: string
+          report_id: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_name?: string | null
+          candidate_name: string
+          comments?: string | null
+          created_at?: string
+          domain: string
+          id?: string
+          location?: string | null
+          mobile_number: string
+          report_date?: string
+          report_id?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_name?: string | null
+          candidate_name?: string
+          comments?: string | null
+          created_at?: string
+          domain?: string
+          id?: string
+          location?: string | null
+          mobile_number?: string
+          report_date?: string
+          report_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bda_candidate_entries_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "employee_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_reports: {
         Row: {
           afternoon_description: string | null
