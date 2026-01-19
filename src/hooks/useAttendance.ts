@@ -13,9 +13,23 @@ export interface Attendance {
   user_name?: string;
 }
 
+export interface AttendanceSummary {
+  totalPresent: number;
+  totalAbsent: number;
+  currentMonthPresent: number;
+  currentMonthAbsent: number;
+}
+
 export const useAttendance = () => {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [myAttendance, setMyAttendance] = useState<Attendance[]>([]);
   const [todayAttendance, setTodayAttendance] = useState<Attendance | null>(null);
+  const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary>({
+    totalPresent: 0,
+    totalAbsent: 0,
+    currentMonthPresent: 0,
+    currentMonthAbsent: 0
+  });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -26,6 +40,8 @@ export const useAttendance = () => {
     try {
       setLoading(true);
       const today = new Date().toISOString().split('T')[0];
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
 
       // For admin, fetch all attendance
       if (user.role === 'admin') {
@@ -53,6 +69,40 @@ export const useAttendance = () => {
         setAttendance(attendanceWithNames);
       }
 
+      // Fetch employee's own attendance history
+      const { data: myData, error: myError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (!myError && myData) {
+        const myAttendanceData = myData.map(a => ({
+          ...a,
+          status: a.status as 'present' | 'absent'
+        }));
+        setMyAttendance(myAttendanceData);
+
+        // Calculate summary
+        const totalPresent = myAttendanceData.filter(a => a.status === 'present').length;
+        const totalAbsent = myAttendanceData.filter(a => a.status === 'absent').length;
+        
+        const currentMonthAttendance = myAttendanceData.filter(a => {
+          const date = new Date(a.date);
+          return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+        });
+        
+        const currentMonthPresent = currentMonthAttendance.filter(a => a.status === 'present').length;
+        const currentMonthAbsent = currentMonthAttendance.filter(a => a.status === 'absent').length;
+
+        setAttendanceSummary({
+          totalPresent,
+          totalAbsent,
+          currentMonthPresent,
+          currentMonthAbsent
+        });
+      }
+
       // Check if user has marked attendance today
       const { data: todayData, error: todayError } = await supabase
         .from('attendance')
@@ -70,7 +120,7 @@ export const useAttendance = () => {
         setTodayAttendance(null);
       }
     } catch (error: any) {
-      console.error('Error fetching attendance:', error);
+      if (import.meta.env.DEV) console.error('Error fetching attendance:', error);
     } finally {
       setLoading(false);
     }
@@ -242,7 +292,9 @@ export const useAttendance = () => {
 
   return { 
     attendance, 
+    myAttendance,
     todayAttendance, 
+    attendanceSummary,
     loading, 
     fetchAttendance, 
     markAttendance, 

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAttendance } from '@/hooks/useAttendance';
-import { CheckCircle, XCircle, Clock, CalendarCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, CalendarCheck, Calendar, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -12,12 +12,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 const AttendanceCard = () => {
-  const { todayAttendance, markAttendance, canMarkAttendance, loading } = useAttendance();
+  const { todayAttendance, markAttendance, attendanceSummary, loading } = useAttendance();
   const [marking, setMarking] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [leaveReason, setLeaveReason] = useState('');
+  const [showSummary, setShowSummary] = useState(false);
 
   const now = new Date();
   const cutoffHour = 10;
@@ -31,6 +33,8 @@ const AttendanceCard = () => {
   const timeRemaining = isBeforeCutoff 
     ? `${hoursLeft}h ${minsLeft}m remaining`
     : 'Time exceeded';
+
+  const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
 
   const handleMarkPresent = async () => {
     setMarking(true);
@@ -65,9 +69,20 @@ const AttendanceCard = () => {
         todayAttendance?.status === 'absent' && "border-red-500/50 bg-gradient-to-br from-red-50/50 to-rose-50/30 dark:from-red-950/20 dark:to-rose-950/10"
       )}>
         <CardHeader className="pb-2 px-3 sm:px-6">
-          <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
-            <CalendarCheck className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate">Today's Attendance</span>
+          <CardTitle className="text-sm sm:text-base font-semibold flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarCheck className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">Today's Attendance</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSummary(true)}
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
+            >
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Summary
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-2 px-3 sm:px-6">
@@ -131,6 +146,96 @@ const AttendanceCard = () => {
         </CardContent>
       </Card>
 
+      {/* Attendance Summary Dialog */}
+      <Dialog open={showSummary} onOpenChange={setShowSummary}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              My Attendance Summary
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Current Month Stats */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">{currentMonthName} (Current Month)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-xs font-medium text-green-700 dark:text-green-400">Present</span>
+                  </div>
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                    {attendanceSummary.currentMonthPresent}
+                  </p>
+                  <p className="text-[10px] text-green-600/70 dark:text-green-400/70">days</p>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20 border border-red-200 dark:border-red-800">
+                  <div className="flex items-center gap-2 mb-1">
+                    <XCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-xs font-medium text-red-700 dark:text-red-400">Absent</span>
+                  </div>
+                  <p className="text-2xl font-bold text-red-700 dark:text-red-300">
+                    {attendanceSummary.currentMonthAbsent}
+                  </p>
+                  <p className="text-[10px] text-red-600/70 dark:text-red-400/70">days</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* All Time Stats */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">All Time</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle className="h-4 w-4 text-blue-600" />
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-400">Total Present</span>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                    {attendanceSummary.totalPresent}
+                  </p>
+                  <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">days</p>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2 mb-1">
+                    <XCircle className="h-4 w-4 text-amber-600" />
+                    <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Total Absent</span>
+                  </div>
+                  <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                    {attendanceSummary.totalAbsent}
+                  </p>
+                  <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">days</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Attendance Rate */}
+            {(attendanceSummary.totalPresent + attendanceSummary.totalAbsent) > 0 && (
+              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-950/30 dark:to-slate-900/20 border border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Attendance Rate</span>
+                  <span className="text-lg font-bold text-primary">
+                    {Math.round((attendanceSummary.totalPresent / (attendanceSummary.totalPresent + attendanceSummary.totalAbsent)) * 100)}%
+                  </span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${Math.round((attendanceSummary.totalPresent / (attendanceSummary.totalPresent + attendanceSummary.totalAbsent)) * 100)}%` 
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave Reason Dialog */}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
