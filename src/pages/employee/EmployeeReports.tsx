@@ -378,11 +378,11 @@ const EmployeeReports = () => {
             {isBDAorHR && (
               <Card className="border-primary/20 bg-primary/5">
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                       <Briefcase className="h-4 w-4 text-primary" />
-                      {department === 'BDA' ? 'Candidate Details' : 'HR Screening Details'}
-                      <Badge variant="secondary" className="ml-2">{candidateEntries.length} entries</Badge>
+                      <span>{department === 'BDA' ? 'Candidate Details' : 'HR Screening Details'}</span>
+                      <Badge variant="secondary">{candidateEntries.length} entries</Badge>
                     </CardTitle>
                     {!isReportLocked && (
                       <Button 
@@ -390,7 +390,7 @@ const EmployeeReports = () => {
                         variant="outline" 
                         size="sm" 
                         onClick={addCandidateEntry}
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1 w-full sm:w-auto justify-center"
                       >
                         <Plus className="h-4 w-4" />
                         Add Candidate
