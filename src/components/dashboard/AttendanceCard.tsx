@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,13 +13,32 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format, isSameDay, parseISO } from 'date-fns';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AttendanceCard = () => {
-  const { todayAttendance, markAttendance, attendanceSummary, loading } = useAttendance();
+  const { todayAttendance, markAttendance, attendanceSummary, myAttendance, loading } = useAttendance();
   const [marking, setMarking] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [leaveReason, setLeaveReason] = useState('');
   const [showSummary, setShowSummary] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+
+  // Create maps for present and absent dates
+  const { presentDates, absentDates } = useMemo(() => {
+    const present: Date[] = [];
+    const absent: Date[] = [];
+    myAttendance.forEach((record) => {
+      const date = parseISO(record.date);
+      if (record.status === 'present') {
+        present.push(date);
+      } else if (record.status === 'absent') {
+        absent.push(date);
+      }
+    });
+    return { presentDates: present, absentDates: absent };
+  }, [myAttendance]);
 
   const now = new Date();
   const cutoffHour = 10;
@@ -65,8 +84,8 @@ const AttendanceCard = () => {
     <>
       <Card className={cn(
         "border-border/50 overflow-hidden transition-all duration-300",
-        todayAttendance?.status === 'present' && "border-green-500/50 bg-gradient-to-br from-green-50/50 to-emerald-50/30 dark:from-green-950/20 dark:to-emerald-950/10",
-        todayAttendance?.status === 'absent' && "border-red-500/50 bg-gradient-to-br from-red-50/50 to-rose-50/30 dark:from-red-950/20 dark:to-rose-950/10"
+        todayAttendance?.status === 'present' && "border-success/50 bg-success/5",
+        todayAttendance?.status === 'absent' && "border-destructive/50 bg-destructive/5"
       )}>
         <CardHeader className="pb-2 px-3 sm:px-6">
           <CardTitle className="text-sm sm:text-base font-semibold flex items-center justify-between">
@@ -91,8 +110,8 @@ const AttendanceCard = () => {
               <div className={cn(
                 "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full shrink-0",
                 todayAttendance.status === 'present' 
-                  ? "bg-green-500/20 text-green-600 dark:text-green-400" 
-                  : "bg-red-500/20 text-red-600 dark:text-red-400"
+                  ? "bg-success/20 text-success" 
+                  : "bg-destructive/20 text-destructive"
               )}>
                 {todayAttendance.status === 'present' 
                   ? <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" /> 
@@ -119,7 +138,7 @@ const AttendanceCard = () => {
                   onClick={handleMarkPresent}
                   disabled={marking}
                   size="sm"
-                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 gap-1 text-[10px] sm:text-xs h-7 sm:h-8"
+                  className="flex-1 bg-success hover:bg-success/90 gap-1 text-[10px] sm:text-xs h-7 sm:h-8"
                 >
                   <CheckCircle className="h-3 w-3" />
                   Present
@@ -129,7 +148,7 @@ const AttendanceCard = () => {
                   disabled={marking}
                   variant="outline"
                   size="sm"
-                  className="flex-1 border-red-500/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1 text-[10px] sm:text-xs h-7 sm:h-8"
+                  className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10 gap-1 text-[10px] sm:text-xs h-7 sm:h-8"
                 >
                   <XCircle className="h-3 w-3" />
                   Leave
@@ -148,90 +167,145 @@ const AttendanceCard = () => {
 
       {/* Attendance Summary Dialog */}
       <Dialog open={showSummary} onOpenChange={setShowSummary}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
               My Attendance Summary
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {/* Current Month Stats */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">{currentMonthName} (Current Month)</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-xs font-medium text-green-700 dark:text-green-400">Present</span>
+          
+          <Tabs defaultValue="stats" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="stats">Statistics</TabsTrigger>
+              <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="stats" className="space-y-4 mt-4">
+              {/* Current Month Stats */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">{currentMonthName} (Current Month)</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 rounded-xl bg-success/10 border border-success/20">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="h-4 w-4 text-success" />
+                      <span className="text-xs font-medium text-success">Present</span>
+                    </div>
+                    <p className="text-2xl font-bold text-success">
+                      {attendanceSummary.currentMonthPresent}
+                    </p>
+                    <p className="text-[10px] text-success/70">days</p>
                   </div>
-                  <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                    {attendanceSummary.currentMonthPresent}
-                  </p>
-                  <p className="text-[10px] text-green-600/70 dark:text-green-400/70">days</p>
-                </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20 border border-red-200 dark:border-red-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <XCircle className="h-4 w-4 text-red-600" />
-                    <span className="text-xs font-medium text-red-700 dark:text-red-400">Absent</span>
+                  <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                    <div className="flex items-center gap-2 mb-1">
+                      <XCircle className="h-4 w-4 text-destructive" />
+                      <span className="text-xs font-medium text-destructive">Absent</span>
+                    </div>
+                    <p className="text-2xl font-bold text-destructive">
+                      {attendanceSummary.currentMonthAbsent}
+                    </p>
+                    <p className="text-[10px] text-destructive/70">days</p>
                   </div>
-                  <p className="text-2xl font-bold text-red-700 dark:text-red-300">
-                    {attendanceSummary.currentMonthAbsent}
-                  </p>
-                  <p className="text-[10px] text-red-600/70 dark:text-red-400/70">days</p>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* All Time Stats */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">All Time</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="h-4 w-4 text-blue-600" />
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-400">Total Present</span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                    {attendanceSummary.totalPresent}
-                  </p>
-                  <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">days</p>
-                </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 border border-amber-200 dark:border-amber-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <XCircle className="h-4 w-4 text-amber-600" />
-                    <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Total Absent</span>
-                  </div>
-                  <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                    {attendanceSummary.totalAbsent}
-                  </p>
-                  <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">days</p>
                 </div>
               </div>
-            </div>
 
-            {/* Attendance Rate */}
-            {(attendanceSummary.totalPresent + attendanceSummary.totalAbsent) > 0 && (
-              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-950/30 dark:to-slate-900/20 border border-border">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Attendance Rate</span>
-                  <span className="text-lg font-bold text-primary">
-                    {Math.round((attendanceSummary.totalPresent / (attendanceSummary.totalPresent + attendanceSummary.totalAbsent)) * 100)}%
+              <Separator />
+
+              {/* All Time Stats */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">All Time</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-medium text-primary">Total Present</span>
+                    </div>
+                    <p className="text-2xl font-bold text-primary">
+                      {attendanceSummary.totalPresent}
+                    </p>
+                    <p className="text-[10px] text-primary/70">days</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-warning/10 border border-warning/20">
+                    <div className="flex items-center gap-2 mb-1">
+                      <XCircle className="h-4 w-4 text-warning" />
+                      <span className="text-xs font-medium text-warning">Total Absent</span>
+                    </div>
+                    <p className="text-2xl font-bold text-warning">
+                      {attendanceSummary.totalAbsent}
+                    </p>
+                    <p className="text-[10px] text-warning/70">days</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attendance Rate */}
+              {(attendanceSummary.totalPresent + attendanceSummary.totalAbsent) > 0 && (
+                <div className="p-4 rounded-xl bg-muted/50 border border-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Attendance Rate</span>
+                    <span className="text-lg font-bold text-primary">
+                      {Math.round((attendanceSummary.totalPresent / (attendanceSummary.totalPresent + attendanceSummary.totalAbsent)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-success to-success/80 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${Math.round((attendanceSummary.totalPresent / (attendanceSummary.totalPresent + attendanceSummary.totalAbsent)) * 100)}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="calendar" className="mt-4">
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-success" />
+                  <span className="text-xs text-muted-foreground">Present</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-destructive" />
+                  <span className="text-xs text-muted-foreground">Absent</span>
+                </div>
+              </div>
+              
+              {/* Calendar */}
+              <div className="flex justify-center">
+                <CalendarComponent
+                  mode="single"
+                  month={calendarMonth}
+                  onMonthChange={setCalendarMonth}
+                  className="rounded-md border pointer-events-auto"
+                  modifiers={{
+                    present: presentDates,
+                    absent: absentDates,
+                  }}
+                  modifiersClassNames={{
+                    present: "bg-success/20 text-success font-semibold hover:bg-success/30",
+                    absent: "bg-destructive/20 text-destructive font-semibold hover:bg-destructive/30",
+                  }}
+                  disabled={(date) => date > new Date()}
+                />
+              </div>
+              
+              {/* Selected Month Stats */}
+              <div className="mt-4 p-3 rounded-lg bg-muted/50 text-center">
+                <p className="text-xs text-muted-foreground">
+                  {format(calendarMonth, 'MMMM yyyy')}: {' '}
+                  <span className="text-success font-medium">
+                    {presentDates.filter(d => d.getMonth() === calendarMonth.getMonth() && d.getFullYear() === calendarMonth.getFullYear()).length} present
                   </span>
-                </div>
-                <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${Math.round((attendanceSummary.totalPresent / (attendanceSummary.totalPresent + attendanceSummary.totalAbsent)) * 100)}%` 
-                    }}
-                  />
-                </div>
+                  {' · '}
+                  <span className="text-destructive font-medium">
+                    {absentDates.filter(d => d.getMonth() === calendarMonth.getMonth() && d.getFullYear() === calendarMonth.getFullYear()).length} absent
+                  </span>
+                </p>
               </div>
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
@@ -263,7 +337,7 @@ const AttendanceCard = () => {
               <Button 
                 onClick={handleMarkAbsent}
                 disabled={marking || !leaveReason.trim()}
-                className="flex-1 bg-red-500 hover:bg-red-600"
+                className="flex-1 bg-destructive hover:bg-destructive/90"
               >
                 {marking ? 'Marking...' : 'Confirm Leave'}
               </Button>
