@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAttendance } from '@/hooks/useAttendance';
-import { CheckCircle, XCircle, Clock, CalendarCheck, Calendar, TrendingUp } from 'lucide-react';
+import { useHolidays } from '@/hooks/useHolidays';
+import { CheckCircle, XCircle, Clock, CalendarCheck, Calendar, TrendingUp, Sun, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -14,22 +15,47 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { format, isSameDay, parseISO, isSunday as checkIsSunday } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AttendanceCard = () => {
   const { todayAttendance, markAttendance, attendanceSummary, myAttendance, loading } = useAttendance();
+  const { holidays, isSunday, isHoliday, getDateStatus } = useHolidays();
   const [marking, setMarking] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [leaveReason, setLeaveReason] = useState('');
   const [showSummary, setShowSummary] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
-  // Create maps for present, absent, and half-day dates
-  const { presentDates, absentDates, halfDayDates } = useMemo(() => {
+  // Check if today is Sunday or a holiday
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStatus = getDateStatus(todayStr);
+  const isTodaySunday = todayStatus.type === 'sunday';
+  const isTodayHoliday = todayStatus.type === 'holiday';
+  const todayHoliday = todayStatus.holiday;
+
+  // Create maps for present, absent, half-day, sunday, and holiday dates
+  const { presentDates, absentDates, halfDayDates, sundayDates, holidayDates } = useMemo(() => {
     const present: Date[] = [];
     const absent: Date[] = [];
     const halfDay: Date[] = [];
+    const sundays: Date[] = [];
+    const holidayList: Date[] = [];
+
+    // Get all Sundays in calendar range (current year)
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+    const endOfYear = new Date(new Date().getFullYear(), 11, 31);
+    for (let d = new Date(startOfYear); d <= endOfYear; d.setDate(d.getDate() + 1)) {
+      if (checkIsSunday(d)) {
+        sundays.push(new Date(d));
+      }
+    }
+
+    // Add holidays
+    holidays.forEach((h) => {
+      holidayList.push(parseISO(h.date));
+    });
+
     myAttendance.forEach((record) => {
       const date = parseISO(record.date);
       if (record.half_day) {
@@ -40,8 +66,8 @@ const AttendanceCard = () => {
         absent.push(date);
       }
     });
-    return { presentDates: present, absentDates: absent, halfDayDates: halfDay };
-  }, [myAttendance]);
+    return { presentDates: present, absentDates: absent, halfDayDates: halfDay, sundayDates: sundays, holidayDates: holidayList };
+  }, [myAttendance, holidays]);
 
   const now = new Date();
   const cutoffHour = 10;
@@ -87,7 +113,8 @@ const AttendanceCard = () => {
     <>
       <Card className={cn(
         "border-border/50 overflow-hidden transition-all duration-300",
-        todayAttendance?.status === 'present' && "border-success/50 bg-success/5",
+        (isTodaySunday || isTodayHoliday) && "border-primary/50 bg-primary/5",
+        todayAttendance?.status === 'present' && !isTodaySunday && !isTodayHoliday && "border-success/50 bg-success/5",
         todayAttendance?.status === 'absent' && "border-destructive/50 bg-destructive/5"
       )}>
         <CardHeader className="pb-2 px-3 sm:px-6">
@@ -108,7 +135,35 @@ const AttendanceCard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-2 px-3 sm:px-6">
-          {todayAttendance ? (
+          {/* Sunday - Auto Present */}
+          {isTodaySunday ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full shrink-0 bg-primary/20 text-primary">
+                <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm sm:text-base text-primary">Sunday - Day Off</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  ✓ Automatically counted as present
+                </p>
+              </div>
+            </div>
+          ) : isTodayHoliday ? (
+            /* Holiday - Auto Present */
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full shrink-0 bg-primary/20 text-primary">
+                <PartyPopper className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm sm:text-base text-primary">
+                  {todayHoliday?.name || 'Holiday'}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  ✓ Automatically counted as present
+                </p>
+              </div>
+            </div>
+          ) : todayAttendance ? (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className={cn(
                 "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full shrink-0",
@@ -278,7 +333,7 @@ const AttendanceCard = () => {
             
             <TabsContent value="calendar" className="mt-4">
               {/* Legend */}
-              <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
+              <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-success" />
                   <span className="text-xs text-muted-foreground">Present</span>
@@ -290,6 +345,14 @@ const AttendanceCard = () => {
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-destructive" />
                   <span className="text-xs text-muted-foreground">Absent</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-xs text-muted-foreground">Sunday</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-purple-500" />
+                  <span className="text-xs text-muted-foreground">Holiday</span>
                 </div>
               </div>
               
@@ -304,11 +367,15 @@ const AttendanceCard = () => {
                     present: presentDates,
                     absent: absentDates,
                     halfDay: halfDayDates,
+                    sunday: sundayDates,
+                    holiday: holidayDates,
                   }}
                   modifiersClassNames={{
                     present: "bg-success/20 text-success font-semibold hover:bg-success/30",
                     absent: "bg-destructive/20 text-destructive font-semibold hover:bg-destructive/30",
                     halfDay: "bg-warning/20 text-warning font-semibold hover:bg-warning/30",
+                    sunday: "bg-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-500/30",
+                    holiday: "bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold hover:bg-purple-500/30",
                   }}
                   disabled={(date) => date > new Date()}
                 />
@@ -328,6 +395,10 @@ const AttendanceCard = () => {
                   {' · '}
                   <span className="text-destructive font-medium">
                     {absentDates.filter(d => d.getMonth() === calendarMonth.getMonth() && d.getFullYear() === calendarMonth.getFullYear()).length} absent
+                  </span>
+                  {' · '}
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                    {sundayDates.filter(d => d.getMonth() === calendarMonth.getMonth() && d.getFullYear() === calendarMonth.getFullYear()).length} sundays
                   </span>
                 </p>
               </div>

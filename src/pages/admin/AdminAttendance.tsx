@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import AttendanceEditDialog from '@/components/attendance/AttendanceEditDialog';
 import AdminMarkAttendanceDialog from '@/components/attendance/AdminMarkAttendanceDialog';
+import HolidayManagement from '@/components/admin/HolidayManagement';
 import * as XLSX from 'xlsx';
 
 const AdminAttendance = () => {
@@ -265,6 +266,9 @@ const AdminAttendance = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Holiday Management */}
+        <HolidayManagement />
 
         {/* Detailed Records */}
         <Card>
