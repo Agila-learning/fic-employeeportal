@@ -275,55 +275,55 @@ const AdminReports = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-border/50">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-primary/10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                   <FileSpreadsheet className="h-6 w-6 text-primary" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-2xl font-bold">{totalReports}</p>
-                  <p className="text-xs text-muted-foreground">Total Reports</p>
+                  <p className="text-xs text-muted-foreground truncate">Total Reports</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-border/50">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-green-500/10">
-                  <Building2 className="h-6 w-6 text-green-500" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-success/10">
+                  <Building2 className="h-6 w-6 text-success" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-2xl font-bold">{departmentsWithReports}</p>
-                  <p className="text-xs text-muted-foreground">Departments</p>
+                  <p className="text-xs text-muted-foreground truncate">Departments</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-border/50">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-blue-500/10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
                   <Users className="h-6 w-6 text-blue-500" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-2xl font-bold">{bdaHrReports}</p>
-                  <p className="text-xs text-muted-foreground">BDA/HR Reports</p>
+                  <p className="text-xs text-muted-foreground truncate">BDA/HR Reports</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-border/50">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-amber-500/10">
-                  <User className="h-6 w-6 text-amber-500" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-warning/10">
+                  <User className="h-6 w-6 text-warning" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-2xl font-bold">{totalCandidatesScreened}</p>
-                  <p className="text-xs text-muted-foreground">Screened (HR)</p>
+                  <p className="text-xs text-muted-foreground truncate">Screened (HR)</p>
                 </div>
               </div>
             </CardContent>

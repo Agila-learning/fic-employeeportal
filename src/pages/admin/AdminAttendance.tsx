@@ -2,6 +2,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAttendance, Attendance } from '@/hooks/useAttendance';
 import { useEmployees } from '@/hooks/useEmployees';
+import { useHolidays } from '@/hooks/useHolidays';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,13 @@ import { useToast } from '@/hooks/use-toast';
 import AttendanceEditDialog from '@/components/attendance/AttendanceEditDialog';
 import AdminMarkAttendanceDialog from '@/components/attendance/AdminMarkAttendanceDialog';
 import HolidayManagement from '@/components/admin/HolidayManagement';
+import EmployeeAttendanceExport from '@/components/attendance/EmployeeAttendanceExport';
 import * as XLSX from 'xlsx';
 
 const AdminAttendance = () => {
   const { attendance, loading, updateAttendance, adminMarkAttendance } = useAttendance();
   const { employees } = useEmployees();
+  const { holidays } = useHolidays();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
@@ -266,6 +269,9 @@ const AdminAttendance = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Individual Employee Export */}
+        <EmployeeAttendanceExport employees={employees} holidays={holidays} />
 
         {/* Holiday Management */}
         <HolidayManagement />
