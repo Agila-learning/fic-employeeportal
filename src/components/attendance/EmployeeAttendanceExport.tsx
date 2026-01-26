@@ -135,6 +135,7 @@ const EmployeeAttendanceExport = ({ employees, holidays }: EmployeeAttendanceExp
           'Date': format(date, 'dd/MM/yyyy'),
           'Day': format(date, 'EEEE'),
           'Status': status,
+          'Work Location': (record as any)?.work_location || '-',
           'Marked At': record ? format(new Date(record.marked_at), 'hh:mm a') : '-',
           'Location Verified': record?.location_verified ? 'Yes' : (isSundayDate || holidayInfo ? 'N/A' : 'No'),
           'Remarks': remarks || '-',
@@ -176,6 +177,7 @@ const EmployeeAttendanceExport = ({ employees, holidays }: EmployeeAttendanceExp
         { wch: 12 }, // Date
         { wch: 12 }, // Day
         { wch: 20 }, // Status
+        { wch: 18 }, // Work Location
         { wch: 12 }, // Marked At
         { wch: 16 }, // Location Verified
         { wch: 40 }, // Remarks

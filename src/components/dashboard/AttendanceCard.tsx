@@ -17,15 +17,20 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, isSameDay, parseISO, isSunday as checkIsSunday } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LocationSelector from '@/components/attendance/LocationSelector';
+import { WorkLocation, getLocationDisplayName } from '@/utils/geolocation';
 
 const AttendanceCard = () => {
   const { todayAttendance, markAttendance, attendanceSummary, myAttendance, loading } = useAttendance();
   const { holidays, isSunday, isHoliday, getDateStatus } = useHolidays();
   const [marking, setMarking] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [showMarkDialog, setShowMarkDialog] = useState(false);
   const [leaveReason, setLeaveReason] = useState('');
   const [showSummary, setShowSummary] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+  const [selectedLocation, setSelectedLocation] = useState<WorkLocation | null>(null);
+  const [isHalfDay, setIsHalfDay] = useState(false);
 
   // Check if today is Sunday or a holiday
   const todayStr = new Date().toISOString().split('T')[0];
@@ -85,9 +90,13 @@ const AttendanceCard = () => {
   const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
 
   const handleMarkPresent = async () => {
+    if (!selectedLocation) return;
     setMarking(true);
-    await markAttendance('present');
+    await markAttendance('present', undefined, selectedLocation, isHalfDay);
     setMarking(false);
+    setShowMarkDialog(false);
+    setSelectedLocation(null);
+    setIsHalfDay(false);
   };
 
   const handleMarkAbsent = async () => {
@@ -167,20 +176,31 @@ const AttendanceCard = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <div className={cn(
                 "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full shrink-0",
-                todayAttendance.status === 'present' 
-                  ? "bg-success/20 text-success" 
-                  : "bg-destructive/20 text-destructive"
+                todayAttendance.half_day
+                  ? "bg-warning/20 text-warning"
+                  : todayAttendance.status === 'present' 
+                    ? "bg-success/20 text-success" 
+                    : "bg-destructive/20 text-destructive"
               )}>
-                {todayAttendance.status === 'present' 
-                  ? <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" /> 
-                  : <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                {todayAttendance.half_day 
+                  ? <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                  : todayAttendance.status === 'present' 
+                    ? <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" /> 
+                    : <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                 }
               </div>
               <div className="min-w-0">
                 <p className="font-semibold capitalize text-sm sm:text-base">
-                  {todayAttendance.status === 'present' ? 'Present' : 'On Leave'}
+                  {todayAttendance.half_day 
+                    ? 'Half Day' 
+                    : todayAttendance.status === 'present' 
+                      ? 'Present' 
+                      : 'On Leave'}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                  {todayAttendance.work_location && (
+                    <span className="mr-1">📍 {getLocationDisplayName(todayAttendance.work_location)} •</span>
+                  )}
                   Marked at {new Date(todayAttendance.marked_at).toLocaleTimeString()}
                 </p>
               </div>
@@ -193,7 +213,7 @@ const AttendanceCard = () => {
               </div>
               <div className="flex gap-2">
                 <Button 
-                  onClick={handleMarkPresent}
+                  onClick={() => setShowMarkDialog(true)}
                   disabled={marking}
                   size="sm"
                   className="flex-1 bg-success hover:bg-success/90 gap-1 text-[10px] sm:text-xs h-7 sm:h-8"
@@ -222,6 +242,70 @@ const AttendanceCard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Mark Attendance Dialog */}
+      <Dialog open={showMarkDialog} onOpenChange={setShowMarkDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-success" />
+              Mark Attendance
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <LocationSelector
+              value={selectedLocation}
+              onChange={setSelectedLocation}
+              disabled={marking}
+            />
+
+            <Separator />
+
+            {/* Half Day Option */}
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-warning" />
+                <div>
+                  <p className="text-sm font-medium">Half Day</p>
+                  <p className="text-xs text-muted-foreground">Mark as half-day attendance</p>
+                </div>
+              </div>
+              <Button
+                variant={isHalfDay ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsHalfDay(!isHalfDay)}
+                className={cn(isHalfDay && "bg-warning hover:bg-warning/90")}
+              >
+                {isHalfDay ? 'Yes' : 'No'}
+              </Button>
+            </div>
+
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowMarkDialog(false);
+                  setSelectedLocation(null);
+                  setIsHalfDay(false);
+                }} 
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleMarkPresent}
+                disabled={marking || !selectedLocation}
+                className={cn(
+                  "flex-1",
+                  isHalfDay ? "bg-warning hover:bg-warning/90" : "bg-success hover:bg-success/90"
+                )}
+              >
+                {marking ? 'Marking...' : isHalfDay ? 'Mark Half Day' : 'Mark Present'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Attendance Summary Dialog */}
       <Dialog open={showSummary} onOpenChange={setShowSummary}>
@@ -347,11 +431,11 @@ const AttendanceCard = () => {
                   <span className="text-xs text-muted-foreground">Absent</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div className="w-3 h-3 rounded-full bg-primary" />
                   <span className="text-xs text-muted-foreground">Sunday</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-purple-500" />
+                  <div className="w-3 h-3 rounded-full bg-secondary" />
                   <span className="text-xs text-muted-foreground">Holiday</span>
                 </div>
               </div>
@@ -374,8 +458,8 @@ const AttendanceCard = () => {
                     present: "bg-success/20 text-success font-semibold hover:bg-success/30",
                     absent: "bg-destructive/20 text-destructive font-semibold hover:bg-destructive/30",
                     halfDay: "bg-warning/20 text-warning font-semibold hover:bg-warning/30",
-                    sunday: "bg-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-500/30",
-                    holiday: "bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold hover:bg-purple-500/30",
+                    sunday: "bg-primary/20 text-primary font-semibold hover:bg-primary/30",
+                    holiday: "bg-secondary/50 text-secondary-foreground font-semibold hover:bg-secondary/70",
                   }}
                   disabled={(date) => date > new Date()}
                 />
@@ -397,7 +481,7 @@ const AttendanceCard = () => {
                     {absentDates.filter(d => d.getMonth() === calendarMonth.getMonth() && d.getFullYear() === calendarMonth.getFullYear()).length} absent
                   </span>
                   {' · '}
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  <span className="text-primary font-medium">
                     {sundayDates.filter(d => d.getMonth() === calendarMonth.getMonth() && d.getFullYear() === calendarMonth.getFullYear()).length} sundays
                   </span>
                 </p>

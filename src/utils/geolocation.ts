@@ -1,13 +1,58 @@
-// Office location coordinates for Forge India Connect, Krishnagiri
-// No 10-I KNT Manickam Road, New bus stand, Krishnagiri-635001
-// Google Maps: https://maps.app.goo.gl/b8pwZxvPLGAezuEu7
-export const OFFICE_LOCATION = {
-  latitude: 12.527334,
-  longitude: 78.214152,
-  // Radius in meters - 1km radius around office for reliable GPS matching
-  radiusMeters: 1000,
-  address: 'No 10-I KNT Manickam Road, New bus stand, Krishnagiri-635001'
+// Office locations for multi-branch attendance
+export type WorkLocation = 'krishnagiri' | 'chennai' | 'bangalore' | 'wfh';
+
+export interface OfficeLocation {
+  id: WorkLocation;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  address: string;
+  requiresGPS: boolean;
+}
+
+// All office locations - GPS only required for Krishnagiri
+export const OFFICE_LOCATIONS: Record<WorkLocation, OfficeLocation> = {
+  krishnagiri: {
+    id: 'krishnagiri',
+    name: 'Krishnagiri Office',
+    latitude: 12.527334,
+    longitude: 78.214152,
+    radiusMeters: 1000,
+    address: 'No 10-I KNT Manickam Road, New bus stand, Krishnagiri-635001',
+    requiresGPS: true,
+  },
+  chennai: {
+    id: 'chennai',
+    name: 'Chennai Office',
+    latitude: 13.0827,
+    longitude: 80.2707,
+    radiusMeters: 1000,
+    address: 'Chennai, Tamil Nadu',
+    requiresGPS: false,
+  },
+  bangalore: {
+    id: 'bangalore',
+    name: 'Bangalore Office',
+    latitude: 12.9716,
+    longitude: 77.5946,
+    radiusMeters: 1000,
+    address: 'Bangalore, Karnataka',
+    requiresGPS: false,
+  },
+  wfh: {
+    id: 'wfh',
+    name: 'Work From Home',
+    latitude: 0,
+    longitude: 0,
+    radiusMeters: 0,
+    address: 'Remote',
+    requiresGPS: false,
+  },
 };
+
+// Backward compatibility - default office location (Krishnagiri)
+export const OFFICE_LOCATION = OFFICE_LOCATIONS.krishnagiri;
 
 export interface LocationResult {
   success: boolean;
@@ -42,32 +87,55 @@ export const calculateDistance = (
 };
 
 /**
- * Check if the given coordinates are within office premises
- * Returns both the boolean result and the calculated distance
+ * Check if the given coordinates are within a specific office premises
  */
-export const isWithinOfficePremises = (latitude: number, longitude: number): boolean => {
+export const isWithinLocation = (
+  latitude: number, 
+  longitude: number, 
+  location: OfficeLocation
+): boolean => {
+  if (!location.requiresGPS) return true;
+  
   const distance = calculateDistance(
     latitude,
     longitude,
-    OFFICE_LOCATION.latitude,
-    OFFICE_LOCATION.longitude
+    location.latitude,
+    location.longitude
   );
   console.log(`[GPS Debug] User location: ${latitude}, ${longitude}`);
-  console.log(`[GPS Debug] Office location: ${OFFICE_LOCATION.latitude}, ${OFFICE_LOCATION.longitude}`);
-  console.log(`[GPS Debug] Distance from office: ${Math.round(distance)}m (allowed: ${OFFICE_LOCATION.radiusMeters}m)`);
-  return distance <= OFFICE_LOCATION.radiusMeters;
+  console.log(`[GPS Debug] Office location: ${location.latitude}, ${location.longitude}`);
+  console.log(`[GPS Debug] Distance from ${location.name}: ${Math.round(distance)}m (allowed: ${location.radiusMeters}m)`);
+  return distance <= location.radiusMeters;
 };
 
 /**
- * Get the distance from office in meters
+ * Check if the given coordinates are within office premises (backward compatibility)
  */
-export const getDistanceFromOffice = (latitude: number, longitude: number): number => {
+export const isWithinOfficePremises = (latitude: number, longitude: number): boolean => {
+  return isWithinLocation(latitude, longitude, OFFICE_LOCATION);
+};
+
+/**
+ * Get the distance from a specific office in meters
+ */
+export const getDistanceFromLocation = (
+  latitude: number, 
+  longitude: number, 
+  location: OfficeLocation
+): number => {
   return calculateDistance(
     latitude,
     longitude,
-    OFFICE_LOCATION.latitude,
-    OFFICE_LOCATION.longitude
+    location.latitude,
+    location.longitude
   );
+};
+
+/**
+ * Get the distance from Krishnagiri office in meters (backward compatibility)
+ */
+export const getDistanceFromOffice = (latitude: number, longitude: number): number => {
+  return getDistanceFromLocation(latitude, longitude, OFFICE_LOCATION);
 };
 
 /**
@@ -122,4 +190,12 @@ export const getCurrentLocation = (): Promise<LocationResult> => {
       }
     );
   });
+};
+
+/**
+ * Get location name for display
+ */
+export const getLocationDisplayName = (location: WorkLocation | null | undefined): string => {
+  if (!location) return 'Unknown';
+  return OFFICE_LOCATIONS[location]?.name || location;
 };

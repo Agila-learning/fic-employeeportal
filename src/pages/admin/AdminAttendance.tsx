@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText, Pencil, UserPlus, Clock } from 'lucide-react';
+import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText, Pencil, UserPlus, Clock, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import AttendanceEditDialog from '@/components/attendance/AttendanceEditDialog';
 import AdminMarkAttendanceDialog from '@/components/attendance/AdminMarkAttendanceDialog';
 import HolidayManagement from '@/components/admin/HolidayManagement';
 import EmployeeAttendanceExport from '@/components/attendance/EmployeeAttendanceExport';
+import AttendanceMapView from '@/components/attendance/AttendanceMapView';
+import { getLocationDisplayName } from '@/utils/geolocation';
 import * as XLSX from 'xlsx';
 
 const AdminAttendance = () => {
@@ -77,6 +79,7 @@ const AdminAttendance = () => {
       'Employee Name': record.user_name || 'Unknown',
       'Date': record.date,
       'Status': record.half_day ? 'Half Day' : (record.status === 'present' ? 'Present' : 'Absent'),
+      'Work Location': getLocationDisplayName(record.work_location),
       'Marked At': new Date(record.marked_at).toLocaleTimeString(),
       'Leave Reason': record.status === 'absent' ? (record.leave_reason || '-') : '-',
       'Location Verified': record.location_verified ? 'Yes' : 'No'
@@ -91,6 +94,7 @@ const AdminAttendance = () => {
       { wch: 25 }, // Employee Name
       { wch: 12 }, // Date
       { wch: 10 }, // Status
+      { wch: 20 }, // Work Location
       { wch: 12 }, // Marked At
       { wch: 40 }, // Leave Reason
       { wch: 15 }, // Location Verified
@@ -269,6 +273,9 @@ const AdminAttendance = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Location Map View */}
+        <AttendanceMapView attendance={attendance} selectedDate={dateFilter || new Date().toISOString().split('T')[0]} />
 
         {/* Individual Employee Export */}
         <EmployeeAttendanceExport employees={employees} holidays={holidays} />

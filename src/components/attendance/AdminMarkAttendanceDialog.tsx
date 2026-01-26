@@ -19,6 +19,9 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Employee } from '@/hooks/useEmployees';
+import LocationSelector from '@/components/attendance/LocationSelector';
+import { WorkLocation } from '@/utils/geolocation';
+import { Separator } from '@/components/ui/separator';
 
 interface AdminMarkAttendanceDialogProps {
   open: boolean;
@@ -29,7 +32,8 @@ interface AdminMarkAttendanceDialogProps {
     status: 'present' | 'absent',
     date: string,
     leaveReason?: string,
-    isHalfDay?: boolean
+    isHalfDay?: boolean,
+    workLocation?: WorkLocation
   ) => Promise<{ error: Error | null }>;
 }
 
@@ -44,6 +48,7 @@ const AdminMarkAttendanceDialog = ({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [leaveReason, setLeaveReason] = useState('');
   const [isHalfDay, setIsHalfDay] = useState(false);
+  const [workLocation, setWorkLocation] = useState<WorkLocation | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Reset form when dialog opens
@@ -54,6 +59,7 @@ const AdminMarkAttendanceDialog = ({
       setDate(new Date().toISOString().split('T')[0]);
       setLeaveReason('');
       setIsHalfDay(false);
+      setWorkLocation(null);
     }
   }, [open]);
 
@@ -66,7 +72,8 @@ const AdminMarkAttendanceDialog = ({
       status,
       date,
       status === 'absent' ? leaveReason : undefined,
-      isHalfDay
+      isHalfDay,
+      status !== 'absent' ? workLocation || undefined : undefined
     );
     setSaving(false);
 
@@ -78,13 +85,15 @@ const AdminMarkAttendanceDialog = ({
   // Filter to only active employees
   const activeEmployees = employees.filter((e) => e.is_active !== false);
 
+  const showLocationSelector = status === 'present' || isHalfDay;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Mark Employee Attendance</DialogTitle>
           <DialogDescription>
-            Manually mark attendance for an employee (bypasses time restrictions)
+            Manually mark attendance for an employee (bypasses time and GPS restrictions)
           </DialogDescription>
         </DialogHeader>
 
@@ -125,7 +134,7 @@ const AdminMarkAttendanceDialog = ({
                 onClick={() => { setStatus('present'); setIsHalfDay(false); }}
                 className={
                   status === 'present' && !isHalfDay
-                    ? 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-success hover:bg-success/90'
                     : ''
                 }
                 size="sm"
@@ -138,7 +147,7 @@ const AdminMarkAttendanceDialog = ({
                 onClick={() => { setStatus('present'); setIsHalfDay(true); }}
                 className={
                   status === 'present' && isHalfDay
-                    ? 'bg-amber-600 hover:bg-amber-700'
+                    ? 'bg-warning hover:bg-warning/90'
                     : ''
                 }
                 size="sm"
@@ -148,10 +157,10 @@ const AdminMarkAttendanceDialog = ({
               <Button
                 type="button"
                 variant={status === 'absent' ? 'default' : 'outline'}
-                onClick={() => { setStatus('absent'); setIsHalfDay(false); }}
+                onClick={() => { setStatus('absent'); setIsHalfDay(false); setWorkLocation(null); }}
                 className={
                   status === 'absent'
-                    ? 'bg-red-600 hover:bg-red-700'
+                    ? 'bg-destructive hover:bg-destructive/90'
                     : ''
                 }
                 size="sm"
@@ -162,11 +171,22 @@ const AdminMarkAttendanceDialog = ({
           </div>
 
           {isHalfDay && (
-            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-              <p className="text-xs text-amber-700 dark:text-amber-400">
+            <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
+              <p className="text-xs text-warning">
                 Half-day attendance will be recorded. This is typically used when an employee works for half the day (morning/afternoon).
               </p>
             </div>
+          )}
+
+          {showLocationSelector && (
+            <>
+              <Separator />
+              <LocationSelector
+                value={workLocation}
+                onChange={setWorkLocation}
+                disabled={saving}
+              />
+            </>
           )}
 
           {status === 'absent' && (
@@ -192,7 +212,8 @@ const AdminMarkAttendanceDialog = ({
             disabled={
               !selectedEmployee ||
               saving ||
-              (status === 'absent' && !leaveReason.trim())
+              (status === 'absent' && !leaveReason.trim()) ||
+              (showLocationSelector && !workLocation)
             }
           >
             {saving ? 'Saving...' : 'Mark Attendance'}
