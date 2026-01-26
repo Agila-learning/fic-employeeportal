@@ -1,6 +1,13 @@
 // Office locations for multi-branch attendance
 export type WorkLocation = 'krishnagiri' | 'chennai' | 'bangalore' | 'wfh';
 
+export interface GeoPoint {
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  address: string;
+}
+
 export interface OfficeLocation {
   id: WorkLocation;
   name: string;
@@ -9,7 +16,25 @@ export interface OfficeLocation {
   radiusMeters: number;
   address: string;
   requiresGPS: boolean;
+  // Multiple GPS points for locations with multiple offices
+  geoPoints?: GeoPoint[];
 }
+
+// Krishnagiri has two office locations - employee can be at either
+const KRISHNAGIRI_GEO_POINTS: GeoPoint[] = [
+  {
+    latitude: 12.527334,
+    longitude: 78.214152,
+    radiusMeters: 500,
+    address: 'No 10-I KNT Manickam Road, New bus stand, Krishnagiri-635001',
+  },
+  {
+    latitude: 12.5220,
+    longitude: 78.2130,
+    radiusMeters: 500,
+    address: 'RK Towers, Opposite HP Petrol Bunk, Wahab Nagar, Krishnagiri',
+  },
+];
 
 // All office locations - GPS only required for Krishnagiri
 export const OFFICE_LOCATIONS: Record<WorkLocation, OfficeLocation> = {
@@ -18,9 +43,10 @@ export const OFFICE_LOCATIONS: Record<WorkLocation, OfficeLocation> = {
     name: 'Krishnagiri Office',
     latitude: 12.527334,
     longitude: 78.214152,
-    radiusMeters: 1000,
-    address: 'No 10-I KNT Manickam Road, New bus stand, Krishnagiri-635001',
+    radiusMeters: 500,
+    address: 'Krishnagiri (2 locations)',
     requiresGPS: true,
+    geoPoints: KRISHNAGIRI_GEO_POINTS,
   },
   chennai: {
     id: 'chennai',
@@ -88,6 +114,7 @@ export const calculateDistance = (
 
 /**
  * Check if the given coordinates are within a specific office premises
+ * For locations with multiple geo-points (like Krishnagiri), checks if within ANY of the points
  */
 export const isWithinLocation = (
   latitude: number, 
@@ -96,13 +123,35 @@ export const isWithinLocation = (
 ): boolean => {
   if (!location.requiresGPS) return true;
   
+  console.log(`[GPS Debug] User location: ${latitude}, ${longitude}`);
+  
+  // If location has multiple geo-points, check against all of them
+  if (location.geoPoints && location.geoPoints.length > 0) {
+    for (const point of location.geoPoints) {
+      const distance = calculateDistance(
+        latitude,
+        longitude,
+        point.latitude,
+        point.longitude
+      );
+      console.log(`[GPS Debug] Distance from ${point.address}: ${Math.round(distance)}m (allowed: ${point.radiusMeters}m)`);
+      
+      if (distance <= point.radiusMeters) {
+        console.log(`[GPS Debug] ✓ Within range of: ${point.address}`);
+        return true;
+      }
+    }
+    console.log(`[GPS Debug] ✗ Not within range of any ${location.name} locations`);
+    return false;
+  }
+  
+  // Fallback for single-point locations
   const distance = calculateDistance(
     latitude,
     longitude,
     location.latitude,
     location.longitude
   );
-  console.log(`[GPS Debug] User location: ${latitude}, ${longitude}`);
   console.log(`[GPS Debug] Office location: ${location.latitude}, ${location.longitude}`);
   console.log(`[GPS Debug] Distance from ${location.name}: ${Math.round(distance)}m (allowed: ${location.radiusMeters}m)`);
   return distance <= location.radiusMeters;

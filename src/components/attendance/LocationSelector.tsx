@@ -65,10 +65,16 @@ const LocationSelector = ({ value, onChange, disabled }: LocationSelectorProps) 
         ))}
       </RadioGroup>
       {value === 'krishnagiri' && (
-        <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-          <Navigation className="h-3 w-3" />
-          GPS verification required within 1km of Krishnagiri office
-        </p>
+        <div className="space-y-1">
+          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <Navigation className="h-3 w-3" />
+            GPS verification required - within 500m of either Krishnagiri office
+          </p>
+          <p className="text-[10px] text-muted-foreground pl-4">
+            • KNT Manickam Road, New Bus Stand<br/>
+            • RK Towers, Wahab Nagar
+          </p>
+        </div>
       )}
     </div>
   );

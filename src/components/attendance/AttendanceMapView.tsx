@@ -80,36 +80,37 @@ const AttendanceMapView = ({ attendance, selectedDate }: AttendanceMapViewProps)
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <MapPin className="h-5 w-5 text-primary" />
           Location Overview {selectedDate && `- ${new Date(selectedDate).toLocaleDateString()}`}
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <CardContent className="space-y-4">
+        {/* Location Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {locationsToShow.map(([location, stats]) => (
             <div
               key={location}
               className={cn(
-                "p-4 rounded-xl border-2 transition-all hover:shadow-md",
+                "p-3 rounded-xl border-2 transition-all hover:shadow-md",
                 locationColors[location]
               )}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="p-2 rounded-lg bg-white/50 dark:bg-black/20">
+                <div className="p-1.5 rounded-lg bg-white/50 dark:bg-black/20">
                   {locationIcons[location]}
                 </div>
-                <span className="text-2xl font-bold">{stats.count}</span>
+                <span className="text-xl font-bold">{stats.count}</span>
               </div>
-              <h3 className="font-medium text-sm">
+              <h3 className="font-medium text-xs leading-tight">
                 {OFFICE_LOCATIONS[location as WorkLocation]?.name || 'Legacy Records'}
               </h3>
               {stats.employees.length > 0 && (
-                <div className="mt-2 max-h-20 overflow-y-auto">
+                <div className="mt-2 max-h-16 overflow-y-auto scrollbar-thin">
                   {stats.employees.slice(0, 3).map((name, idx) => (
                     <div key={idx} className="flex items-center gap-1 text-xs opacity-80">
-                      <CheckCircle className="h-3 w-3" />
+                      <CheckCircle className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">{name}</span>
                     </div>
                   ))}
@@ -124,43 +125,61 @@ const AttendanceMapView = ({ attendance, selectedDate }: AttendanceMapViewProps)
           ))}
         </div>
 
-        {/* Simulated Map View */}
-        <div className="mt-4 p-4 rounded-xl bg-muted/50 border border-border">
-          <div className="flex items-center gap-2 mb-3">
+        {/* Office Locations Visual */}
+        <div className="p-3 rounded-xl bg-muted/50 border border-border">
+          <div className="flex items-center gap-2 mb-2">
             <MapPin className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Office Locations</span>
           </div>
-          <div className="relative h-40 bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 rounded-lg overflow-hidden">
-            {/* Simplified map markers */}
-            <div className="absolute inset-0 flex items-center justify-center gap-8 flex-wrap p-4">
-              {Object.entries(OFFICE_LOCATIONS)
-                .filter(([key]) => key !== 'wfh')
-                .map(([key, location]) => (
-                  <div
-                    key={key}
-                    className={cn(
-                      "flex flex-col items-center p-2 rounded-lg transition-all",
-                      locationStats[key]?.count > 0 
-                        ? "bg-white dark:bg-gray-800 shadow-lg scale-110" 
-                        : "opacity-50"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center",
-                      locationColors[key]
-                    )}>
-                      {locationIcons[key]}
-                    </div>
-                    <span className="text-xs font-medium mt-1">{location.name.split(' ')[0]}</span>
-                    {locationStats[key]?.count > 0 && (
-                      <span className="text-xs font-bold text-primary">
-                        {locationStats[key].count}
-                      </span>
-                    )}
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(OFFICE_LOCATIONS)
+              .filter(([key]) => key !== 'wfh')
+              .map(([key, location]) => (
+                <div
+                  key={key}
+                  className={cn(
+                    "flex flex-col items-center p-2 rounded-lg transition-all",
+                    locationStats[key]?.count > 0 
+                      ? "bg-white dark:bg-gray-800 shadow-md" 
+                      : "bg-muted/30 opacity-60"
+                  )}
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center mb-1",
+                    locationColors[key]
+                  )}>
+                    {locationIcons[key]}
+                  </div>
+                  <span className="text-xs font-medium text-center">{location.name.split(' ')[0]}</span>
+                  <span className={cn(
+                    "text-sm font-bold",
+                    locationStats[key]?.count > 0 ? "text-primary" : "text-muted-foreground"
+                  )}>
+                    {locationStats[key]?.count || 0}
+                  </span>
+                  {key === 'krishnagiri' && location.geoPoints && (
+                    <span className="text-[10px] text-muted-foreground mt-0.5">
+                      {location.geoPoints.length} offices
+                    </span>
+                  )}
+                </div>
+              ))}
+          </div>
+          
+          {/* Krishnagiri Details */}
+          {OFFICE_LOCATIONS.krishnagiri.geoPoints && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Krishnagiri Office Locations (500m radius each):</p>
+              <div className="space-y-1">
+                {OFFICE_LOCATIONS.krishnagiri.geoPoints.map((point, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs">
+                    <Navigation className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">{point.address}</span>
                   </div>
                 ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>
