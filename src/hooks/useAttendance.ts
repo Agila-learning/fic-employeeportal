@@ -149,9 +149,9 @@ export const useAttendance = () => {
   const markAttendance = async (status: 'present' | 'absent', leaveReason?: string) => {
     if (!user) return { error: new Error('Not authenticated'), locationError: false };
 
-    // Check if it's past 11 AM
+    // Check if it's past the cutoff time (extended to 11:30 PM for testing)
     const now = new Date();
-    const cutoffHour = 11;
+    const cutoffHour = 23;
     
     if (now.getHours() >= cutoffHour) {
       toast({ 
