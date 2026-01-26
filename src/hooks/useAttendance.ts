@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { getCurrentLocation, isWithinOfficePremises, getDistanceFromOffice, OFFICE_LOCATION } from '@/utils/geolocation';
+import { 
+  getCurrentLocation, 
+  isWithinLocation, 
+  getDistanceFromLocation, 
+  OFFICE_LOCATIONS,
+  WorkLocation 
+} from '@/utils/geolocation';
 
 export type AttendanceStatus = 'present' | 'absent' | 'half_day';
 
@@ -18,6 +24,7 @@ export interface Attendance {
   latitude?: number | null;
   longitude?: number | null;
   location_verified?: boolean;
+  work_location?: WorkLocation | null;
 }
 
 export interface AttendanceSummary {
@@ -78,6 +85,7 @@ export const useAttendance = () => {
           latitude: a.latitude,
           longitude: a.longitude,
           location_verified: a.location_verified,
+          work_location: (a as any).work_location as WorkLocation | null,
           user_name: profiles?.find(p => p.user_id === a.user_id)?.name || 'Unknown'
         })) || [];
 
@@ -95,7 +103,8 @@ export const useAttendance = () => {
         const myAttendanceData = myData.map(a => ({
           ...a,
           status: a.status as 'present' | 'absent',
-          half_day: a.half_day ?? false
+          half_day: a.half_day ?? false,
+          work_location: (a as any).work_location as WorkLocation | null
         }));
         setMyAttendance(myAttendanceData);
 
@@ -134,7 +143,8 @@ export const useAttendance = () => {
       if (!todayError && todayData) {
         setTodayAttendance({
           ...todayData,
-          status: todayData.status as 'present' | 'absent'
+          status: todayData.status as 'present' | 'absent',
+          work_location: (todayData as any).work_location as WorkLocation | null
         });
       } else {
         setTodayAttendance(null);
@@ -146,7 +156,12 @@ export const useAttendance = () => {
     }
   };
 
-  const markAttendance = async (status: 'present' | 'absent', leaveReason?: string) => {
+  const markAttendance = async (
+    status: 'present' | 'absent', 
+    leaveReason?: string,
+    workLocation?: WorkLocation,
+    isHalfDay?: boolean
+  ) => {
     if (!user) return { error: new Error('Not authenticated'), locationError: false };
 
     // Check if it's past 10:30 AM
@@ -161,15 +176,6 @@ export const useAttendance = () => {
         variant: "destructive"
       });
       return { error: new Error('Attendance window closed'), locationError: false };
-    }
-    
-    if (now.getHours() >= cutoffHour) {
-      toast({ 
-        title: 'Time Exceeded', 
-        description: 'Attendance can only be marked before 11:00 AM', 
-        variant: 'destructive' 
-      });
-      return { error: new Error('Time exceeded'), locationError: false };
     }
 
     // Check if already marked
@@ -192,41 +198,60 @@ export const useAttendance = () => {
       return { error: new Error('Leave reason required'), locationError: false };
     }
 
-    // For present status, verify GPS location
+    // Require work location for present/half-day status
+    if ((status === 'present' || isHalfDay) && !workLocation) {
+      toast({ 
+        title: 'Location Required', 
+        description: 'Please select your work location', 
+        variant: 'destructive' 
+      });
+      return { error: new Error('Work location required'), locationError: false };
+    }
+
+    // For present/half-day status, verify GPS location if required
     let latitude: number | undefined;
     let longitude: number | undefined;
     let locationVerified = false;
 
-    if (status === 'present') {
-      toast({ 
-        title: 'Checking Location', 
-        description: 'Verifying you are at office premises...' 
-      });
-
-      const locationResult = await getCurrentLocation();
+    if ((status === 'present' || isHalfDay) && workLocation) {
+      const selectedLocation = OFFICE_LOCATIONS[workLocation];
       
-      if (!locationResult.success) {
+      if (selectedLocation.requiresGPS) {
         toast({ 
-          title: 'Location Required', 
-          description: locationResult.error || 'Please enable location access to mark attendance', 
-          variant: 'destructive' 
+          title: 'Checking Location', 
+          description: `Verifying you are at ${selectedLocation.name}...` 
         });
-        return { error: new Error(locationResult.error || 'Location access required'), locationError: true };
-      }
 
-      if (!locationResult.isWithinOffice) {
-        const distance = getDistanceFromOffice(locationResult.latitude!, locationResult.longitude!);
-        toast({ 
-          title: 'Outside Office Premises', 
-          description: `You are ${Math.round(distance)}m away from office. Must be within ${OFFICE_LOCATION.radiusMeters}m. Your coordinates: ${locationResult.latitude?.toFixed(6)}, ${locationResult.longitude?.toFixed(6)}`, 
-          variant: 'destructive' 
-        });
-        return { error: new Error('Outside office premises'), locationError: true };
-      }
+        const locationResult = await getCurrentLocation();
+        
+        if (!locationResult.success) {
+          toast({ 
+            title: 'Location Required', 
+            description: locationResult.error || 'Please enable location access to mark attendance', 
+            variant: 'destructive' 
+          });
+          return { error: new Error(locationResult.error || 'Location access required'), locationError: true };
+        }
 
-      latitude = locationResult.latitude;
-      longitude = locationResult.longitude;
-      locationVerified = true;
+        const isWithin = isWithinLocation(locationResult.latitude!, locationResult.longitude!, selectedLocation);
+        
+        if (!isWithin) {
+          const distance = getDistanceFromLocation(locationResult.latitude!, locationResult.longitude!, selectedLocation);
+          toast({ 
+            title: 'Outside Office Premises', 
+            description: `You are ${Math.round(distance)}m away from ${selectedLocation.name}. Must be within ${selectedLocation.radiusMeters}m. Your coordinates: ${locationResult.latitude?.toFixed(6)}, ${locationResult.longitude?.toFixed(6)}`, 
+            variant: 'destructive' 
+          });
+          return { error: new Error('Outside office premises'), locationError: true };
+        }
+
+        latitude = locationResult.latitude;
+        longitude = locationResult.longitude;
+        locationVerified = true;
+      } else {
+        // No GPS required for this location
+        locationVerified = true;
+      }
     }
 
     const { error } = await supabase.from('attendance').insert({
@@ -236,21 +261,30 @@ export const useAttendance = () => {
       leave_reason: status === 'absent' ? leaveReason : null,
       latitude,
       longitude,
-      location_verified: locationVerified
-    });
+      location_verified: locationVerified,
+      half_day: isHalfDay ?? false,
+      work_location: workLocation || null
+    } as any);
 
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
       return { error, locationError: false };
     }
 
-    toast({ title: 'Success', description: `Attendance marked as ${status}` });
+    const statusText = isHalfDay ? 'Half Day' : status;
+    toast({ title: 'Success', description: `Attendance marked as ${statusText}` });
     fetchAttendance();
     return { error: null, locationError: false };
   };
 
   // Admin function to update attendance
-  const updateAttendance = async (id: string, status: 'present' | 'absent', leaveReason?: string, isHalfDay?: boolean) => {
+  const updateAttendance = async (
+    id: string, 
+    status: 'present' | 'absent', 
+    leaveReason?: string, 
+    isHalfDay?: boolean,
+    workLocation?: WorkLocation
+  ) => {
     if (!user || user.role !== 'admin') {
       toast({ title: 'Error', description: 'Unauthorized', variant: 'destructive' });
       return { error: new Error('Unauthorized') };
@@ -271,8 +305,9 @@ export const useAttendance = () => {
       .update({
         status,
         leave_reason: status === 'absent' ? leaveReason : null,
-        half_day: isHalfDay ?? false
-      })
+        half_day: isHalfDay ?? false,
+        work_location: workLocation || null
+      } as any)
       .eq('id', id);
 
     if (error) {
@@ -291,7 +326,8 @@ export const useAttendance = () => {
     status: 'present' | 'absent', 
     date: string,
     leaveReason?: string,
-    isHalfDay?: boolean
+    isHalfDay?: boolean,
+    workLocation?: WorkLocation
   ) => {
     if (!user || user.role !== 'admin') {
       toast({ title: 'Error', description: 'Unauthorized', variant: 'destructive' });
@@ -324,8 +360,9 @@ export const useAttendance = () => {
           status,
           leave_reason: status === 'absent' ? leaveReason : null,
           half_day: isHalfDay ?? false,
-          location_verified: false // Admin marked, no GPS verification
-        })
+          location_verified: false, // Admin marked, no GPS verification
+          work_location: workLocation || null
+        } as any)
         .eq('id', existing.id);
 
       if (error) {
@@ -342,8 +379,9 @@ export const useAttendance = () => {
         date,
         leave_reason: status === 'absent' ? leaveReason : null,
         half_day: isHalfDay ?? false,
-        location_verified: false // Admin marked, no GPS verification
-      });
+        location_verified: false, // Admin marked, no GPS verification
+        work_location: workLocation || null
+      } as any);
 
       if (error) {
         toast({ title: 'Error', description: error.message, variant: 'destructive' });

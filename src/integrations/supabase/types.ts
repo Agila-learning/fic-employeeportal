@@ -53,6 +53,7 @@ export type Database = {
           marked_at: string
           status: string
           user_id: string
+          work_location: string | null
         }
         Insert: {
           date?: string
@@ -65,6 +66,7 @@ export type Database = {
           marked_at?: string
           status: string
           user_id: string
+          work_location?: string | null
         }
         Update: {
           date?: string
@@ -77,6 +79,7 @@ export type Database = {
           marked_at?: string
           status?: string
           user_id?: string
+          work_location?: string | null
         }
         Relationships: []
       }
