@@ -4,8 +4,8 @@
 export const OFFICE_LOCATION = {
   latitude: 12.527334,
   longitude: 78.214152,
-  // Radius in meters - 500m radius around office for reliable GPS matching
-  radiusMeters: 500,
+  // Radius in meters - 1km radius around office for reliable GPS matching
+  radiusMeters: 1000,
   address: 'No 10-I KNT Manickam Road, New bus stand, Krishnagiri-635001'
 };
 
