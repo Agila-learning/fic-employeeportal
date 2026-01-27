@@ -20,6 +20,7 @@ const AttendanceMapView = ({ attendance, selectedDate }: AttendanceMapViewProps)
   const locationStats = useMemo(() => {
     const stats: Record<string, { count: number; employees: string[] }> = {
       krishnagiri: { count: 0, employees: [] },
+      tirupattur: { count: 0, employees: [] },
       chennai: { count: 0, employees: [] },
       bangalore: { count: 0, employees: [] },
       wfh: { count: 0, employees: [] },
@@ -44,6 +45,7 @@ const AttendanceMapView = ({ attendance, selectedDate }: AttendanceMapViewProps)
 
   const locationIcons: Record<string, React.ReactNode> = {
     krishnagiri: <Navigation className="h-5 w-5" />,
+    tirupattur: <Navigation className="h-5 w-5" />,
     chennai: <Building2 className="h-5 w-5" />,
     bangalore: <Building2 className="h-5 w-5" />,
     wfh: <Home className="h-5 w-5" />,
@@ -52,6 +54,7 @@ const AttendanceMapView = ({ attendance, selectedDate }: AttendanceMapViewProps)
 
   const locationColors: Record<string, string> = {
     krishnagiri: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+    tirupattur: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
     chennai: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
     bangalore: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
     wfh: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',

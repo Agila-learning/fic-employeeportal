@@ -1,5 +1,5 @@
 // Office locations for multi-branch attendance
-export type WorkLocation = 'krishnagiri' | 'chennai' | 'bangalore' | 'wfh';
+export type WorkLocation = 'krishnagiri' | 'tirupattur' | 'chennai' | 'bangalore' | 'wfh';
 
 export interface GeoPoint {
   latitude: number;
@@ -36,7 +36,17 @@ const KRISHNAGIRI_GEO_POINTS: GeoPoint[] = [
   },
 ];
 
-// All office locations - GPS only required for Krishnagiri
+// Tirupattur office location
+const TIRUPATTUR_GEO_POINTS: GeoPoint[] = [
+  {
+    latitude: 12.4967,
+    longitude: 78.5730,
+    radiusMeters: 1000,
+    address: 'No.83, TS No. 87/2, Opposite to Reliance Petrol Bunk, Vaniyambadi Main Road, Tirupattur',
+  },
+];
+
+// All office locations - GPS required for Krishnagiri and Tirupattur
 export const OFFICE_LOCATIONS: Record<WorkLocation, OfficeLocation> = {
   krishnagiri: {
     id: 'krishnagiri',
@@ -47,6 +57,16 @@ export const OFFICE_LOCATIONS: Record<WorkLocation, OfficeLocation> = {
     address: 'Krishnagiri (2 locations)',
     requiresGPS: true,
     geoPoints: KRISHNAGIRI_GEO_POINTS,
+  },
+  tirupattur: {
+    id: 'tirupattur',
+    name: 'Tirupattur Office',
+    latitude: 12.4967,
+    longitude: 78.5730,
+    radiusMeters: 1000,
+    address: 'Opposite Reliance Petrol Bunk, Vaniyambadi Main Road',
+    requiresGPS: true,
+    geoPoints: TIRUPATTUR_GEO_POINTS,
   },
   chennai: {
     id: 'chennai',

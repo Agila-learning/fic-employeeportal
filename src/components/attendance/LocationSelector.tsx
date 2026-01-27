@@ -12,6 +12,7 @@ interface LocationSelectorProps {
 
 const locationIcons: Record<WorkLocation, React.ReactNode> = {
   krishnagiri: <Navigation className="h-4 w-4" />,
+  tirupattur: <Navigation className="h-4 w-4" />,
   chennai: <Building2 className="h-4 w-4" />,
   bangalore: <Building2 className="h-4 w-4" />,
   wfh: <Home className="h-4 w-4" />,
@@ -73,6 +74,17 @@ const LocationSelector = ({ value, onChange, disabled }: LocationSelectorProps) 
           <p className="text-[10px] text-muted-foreground pl-4">
             • KNT Manickam Road, New Bus Stand<br/>
             • RK Towers, Wahab Nagar
+          </p>
+        </div>
+      )}
+      {value === 'tirupattur' && (
+        <div className="space-y-1">
+          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <Navigation className="h-3 w-3" />
+            GPS verification required - within 1km of Tirupattur office
+          </p>
+          <p className="text-[10px] text-muted-foreground pl-4">
+            • Opposite Reliance Petrol Bunk, Vaniyambadi Main Road
           </p>
         </div>
       )}
