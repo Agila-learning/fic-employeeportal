@@ -25,13 +25,13 @@ const KRISHNAGIRI_GEO_POINTS: GeoPoint[] = [
   {
     latitude: 12.527334,
     longitude: 78.214152,
-    radiusMeters: 500,
+    radiusMeters: 1000,
     address: 'No 10-I KNT Manickam Road, New bus stand, Krishnagiri-635001',
   },
   {
     latitude: 12.5273,
     longitude: 78.2130,
-    radiusMeters: 500,
+    radiusMeters: 1000,
     address: 'RK Towers, Opposite HP Petrol Bunk, Wahab Nagar, Krishnagiri',
   },
 ];
