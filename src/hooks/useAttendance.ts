@@ -397,7 +397,11 @@ export const useAttendance = () => {
 
   const canMarkAttendance = () => {
     const now = new Date();
-    return now.getHours() < 11 && !todayAttendance;
+    const cutoffHour = 10;
+    const cutoffMinute = 30;
+    const isBeforeCutoff = now.getHours() < cutoffHour || 
+      (now.getHours() === cutoffHour && now.getMinutes() < cutoffMinute);
+    return isBeforeCutoff && !todayAttendance;
   };
 
   useEffect(() => {

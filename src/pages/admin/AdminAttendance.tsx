@@ -15,6 +15,7 @@ import AdminMarkAttendanceDialog from '@/components/attendance/AdminMarkAttendan
 import HolidayManagement from '@/components/admin/HolidayManagement';
 import EmployeeAttendanceExport from '@/components/attendance/EmployeeAttendanceExport';
 import AttendanceMapView from '@/components/attendance/AttendanceMapView';
+import LocationTrendReport from '@/components/attendance/LocationTrendReport';
 import { getLocationDisplayName } from '@/utils/geolocation';
 import * as XLSX from 'xlsx';
 
@@ -273,6 +274,9 @@ const AdminAttendance = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Location Trend Report */}
+        <LocationTrendReport attendance={attendance} />
 
         {/* Location Map View */}
         <AttendanceMapView attendance={attendance} selectedDate={dateFilter || new Date().toISOString().split('T')[0]} />
