@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   getCurrentLocation, 
   isWithinLocation, 
-  getDistanceFromLocation, 
+  getMinDistanceFromLocation, 
   OFFICE_LOCATIONS,
   WorkLocation 
 } from '@/utils/geolocation';
@@ -236,10 +236,14 @@ export const useAttendance = () => {
         const isWithin = isWithinLocation(locationResult.latitude!, locationResult.longitude!, selectedLocation);
         
         if (!isWithin) {
-          const distance = getDistanceFromLocation(locationResult.latitude!, locationResult.longitude!, selectedLocation);
+          const { distance, closestPoint, allowedRadius } = getMinDistanceFromLocation(
+            locationResult.latitude!, 
+            locationResult.longitude!, 
+            selectedLocation
+          );
           toast({ 
             title: 'Outside Office Premises', 
-            description: `You are ${Math.round(distance)}m away from ${selectedLocation.name}. Must be within ${selectedLocation.radiusMeters}m. Your coordinates: ${locationResult.latitude?.toFixed(6)}, ${locationResult.longitude?.toFixed(6)}`, 
+            description: `You are ${Math.round(distance)}m away from nearest office (${closestPoint.split(',')[0]}). Must be within ${allowedRadius}m. Your coordinates: ${locationResult.latitude?.toFixed(6)}, ${locationResult.longitude?.toFixed(6)}`, 
             variant: 'destructive' 
           });
           return { error: new Error('Outside office premises'), locationError: true };

@@ -165,6 +165,38 @@ export const isWithinOfficePremises = (latitude: number, longitude: number): boo
 };
 
 /**
+ * Get the minimum distance from any geo-point of a location
+ * For multi-point locations like Krishnagiri, returns distance to closest point
+ */
+export const getMinDistanceFromLocation = (
+  latitude: number, 
+  longitude: number, 
+  location: OfficeLocation
+): { distance: number; closestPoint: string; allowedRadius: number } => {
+  // If location has multiple geo-points, find the closest one
+  if (location.geoPoints && location.geoPoints.length > 0) {
+    let minDistance = Infinity;
+    let closestPoint = location.address;
+    let allowedRadius = location.radiusMeters;
+    
+    for (const point of location.geoPoints) {
+      const distance = calculateDistance(latitude, longitude, point.latitude, point.longitude);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = point.address;
+        allowedRadius = point.radiusMeters;
+      }
+    }
+    
+    return { distance: minDistance, closestPoint, allowedRadius };
+  }
+  
+  // Single-point location
+  const distance = calculateDistance(latitude, longitude, location.latitude, location.longitude);
+  return { distance, closestPoint: location.address, allowedRadius: location.radiusMeters };
+};
+
+/**
  * Get the distance from a specific office in meters
  */
 export const getDistanceFromLocation = (
