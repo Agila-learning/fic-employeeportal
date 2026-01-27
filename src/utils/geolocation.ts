@@ -43,7 +43,7 @@ export const OFFICE_LOCATIONS: Record<WorkLocation, OfficeLocation> = {
     name: 'Krishnagiri Office',
     latitude: 12.527334,
     longitude: 78.214152,
-    radiusMeters: 500,
+    radiusMeters: 1000,
     address: 'Krishnagiri (2 locations)',
     requiresGPS: true,
     geoPoints: KRISHNAGIRI_GEO_POINTS,
