@@ -44,6 +44,7 @@ export type Database = {
       attendance: {
         Row: {
           date: string
+          face_photo_url: string | null
           half_day: boolean | null
           id: string
           latitude: number | null
@@ -57,6 +58,7 @@ export type Database = {
         }
         Insert: {
           date?: string
+          face_photo_url?: string | null
           half_day?: boolean | null
           id?: string
           latitude?: number | null
@@ -70,6 +72,7 @@ export type Database = {
         }
         Update: {
           date?: string
+          face_photo_url?: string | null
           half_day?: boolean | null
           id?: string
           latitude?: number | null

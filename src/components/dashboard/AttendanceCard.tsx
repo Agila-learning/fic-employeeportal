@@ -18,6 +18,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, isSameDay, parseISO, isSunday as checkIsSunday } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LocationSelector from '@/components/attendance/LocationSelector';
+import FaceCapture from '@/components/attendance/FaceCapture';
 import { WorkLocation, getLocationDisplayName } from '@/utils/geolocation';
 
 const AttendanceCard = () => {
@@ -31,6 +32,7 @@ const AttendanceCard = () => {
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const [selectedLocation, setSelectedLocation] = useState<WorkLocation | null>(null);
   const [isHalfDay, setIsHalfDay] = useState(false);
+  const [capturedFaceImage, setCapturedFaceImage] = useState<string | null>(null);
 
   // Check if today is Sunday or a holiday
   const todayStr = new Date().toISOString().split('T')[0];
@@ -90,13 +92,14 @@ const AttendanceCard = () => {
   const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
 
   const handleMarkPresent = async () => {
-    if (!selectedLocation) return;
+    if (!selectedLocation || !capturedFaceImage) return;
     setMarking(true);
-    await markAttendance('present', undefined, selectedLocation, isHalfDay);
+    await markAttendance('present', undefined, selectedLocation, isHalfDay, capturedFaceImage);
     setMarking(false);
     setShowMarkDialog(false);
     setSelectedLocation(null);
     setIsHalfDay(false);
+    setCapturedFaceImage(null);
   };
 
   const handleMarkAbsent = async () => {
@@ -252,11 +255,20 @@ const AttendanceCard = () => {
               Mark Attendance
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             <LocationSelector
               value={selectedLocation}
               onChange={setSelectedLocation}
               disabled={marking}
+            />
+
+            <Separator />
+
+            {/* Face Capture */}
+            <FaceCapture
+              onCapture={setCapturedFaceImage}
+              disabled={marking}
+              capturedImage={capturedFaceImage}
             />
 
             <Separator />
@@ -287,6 +299,7 @@ const AttendanceCard = () => {
                   setShowMarkDialog(false);
                   setSelectedLocation(null);
                   setIsHalfDay(false);
+                  setCapturedFaceImage(null);
                 }} 
                 className="flex-1"
               >
@@ -294,7 +307,7 @@ const AttendanceCard = () => {
               </Button>
               <Button 
                 onClick={handleMarkPresent}
-                disabled={marking || !selectedLocation}
+                disabled={marking || !selectedLocation || !capturedFaceImage}
                 className={cn(
                   "flex-1",
                   isHalfDay ? "bg-warning hover:bg-warning/90" : "bg-success hover:bg-success/90"
