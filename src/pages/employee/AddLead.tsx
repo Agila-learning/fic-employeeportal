@@ -45,11 +45,11 @@ const AddLead = () => {
       notes: stripHtml(formData.notes || '').trim(),
     };
     
-    if (!sanitizedData.name || !sanitizedData.email || !sanitizedData.phone) {
+    if (!sanitizedData.name || !sanitizedData.phone) {
       toast.error('Please fill in all required fields'); return;
     }
     
-    if (!sanitizedData.email.includes('@')) {
+    if (sanitizedData.email && !sanitizedData.email.includes('@')) {
       toast.error('Please enter a valid email address'); return;
     }
     
@@ -79,7 +79,7 @@ const AddLead = () => {
                 <div className="space-y-2"><Label>Full Name *</Label><Input value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="Enter full name" /></div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Email *</Label><Input type="email" value={formData.email} onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" /></div>
+                <div className="space-y-2"><Label>Email</Label><Input type="email" value={formData.email} onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com (optional)" /></div>
                 <div className="space-y-2"><Label>Phone *</Label><Input value={formData.phone} onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))} placeholder="+91 9876543210" /></div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

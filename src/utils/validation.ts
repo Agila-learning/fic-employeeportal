@@ -31,10 +31,11 @@ export const LeadSchema = z.object({
     .max(100, 'Name must be 100 characters or less')
     .transform(val => sanitizeText(val.trim())),
   email: z.string()
-    .min(1, 'Email is required')
     .max(255, 'Email must be 255 characters or less')
-    .email('Invalid email format')
-    .transform(val => sanitizeEmail(val)),
+    .transform(val => val ? sanitizeEmail(val) : '')
+    .refine(val => !val || val.includes('@'), 'Invalid email format')
+    .optional()
+    .nullable(),
   phone: z.string()
     .min(7, 'Phone number must be at least 7 characters')
     .max(20, 'Phone number must be 20 characters or less')

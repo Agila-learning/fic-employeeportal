@@ -222,8 +222,13 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.phone) {
+    if (!formData.name || !formData.phone) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    if (formData.email && !formData.email.includes('@')) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
@@ -653,14 +658,14 @@ const LeadForm = ({
     {/* Contact Info */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="space-y-1.5 sm:space-y-2">
-        <Label htmlFor="email" className="text-xs sm:text-sm">Email *</Label>
+        <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
         <Input
           id="email"
           type="email"
           value={formData.email}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, email: e.target.value }))}
           disabled={isViewMode}
-          placeholder="email@example.com"
+          placeholder="email@example.com (optional)"
           className="text-sm"
         />
       </div>

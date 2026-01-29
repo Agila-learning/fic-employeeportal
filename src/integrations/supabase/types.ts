@@ -335,7 +335,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           current_ctc: string | null
-          email: string
+          email: string | null
           expected_ctc: string | null
           followup_count: number | null
           followup_date: string | null
@@ -361,7 +361,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           current_ctc?: string | null
-          email: string
+          email?: string | null
           expected_ctc?: string | null
           followup_count?: number | null
           followup_date?: string | null
@@ -387,7 +387,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           current_ctc?: string | null
-          email?: string
+          email?: string | null
           expected_ctc?: string | null
           followup_count?: number | null
           followup_date?: string | null
