@@ -20,7 +20,7 @@ export interface OfficeLocation {
   geoPoints?: GeoPoint[];
 }
 
-// Krishnagiri has two office locations - employee can be at either
+// Krishnagiri has 3 office locations - employees can mark from any
 const KRISHNAGIRI_GEO_POINTS: GeoPoint[] = [
   {
     latitude: 12.527334,
@@ -33,6 +33,12 @@ const KRISHNAGIRI_GEO_POINTS: GeoPoint[] = [
     longitude: 78.2130,
     radiusMeters: 1000,
     address: 'RK Towers, Opposite HP Petrol Bunk, Wahab Nagar, Krishnagiri',
+  },
+  {
+    latitude: 12.5235,
+    longitude: 78.2155,
+    radiusMeters: 500,
+    address: '158 A, Phase 1/1073, Rayakottai Rd, Wahab Nagar, Krishnagiri',
   },
 ];
 
@@ -54,7 +60,7 @@ export const OFFICE_LOCATIONS: Record<WorkLocation, OfficeLocation> = {
     latitude: 12.527334,
     longitude: 78.214152,
     radiusMeters: 1000,
-    address: 'Krishnagiri (2 locations)',
+    address: 'Krishnagiri (3 locations)',
     requiresGPS: true,
     geoPoints: KRISHNAGIRI_GEO_POINTS,
   },
