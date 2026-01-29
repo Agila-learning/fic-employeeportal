@@ -160,7 +160,8 @@ export const useAttendance = () => {
     status: 'present' | 'absent', 
     leaveReason?: string,
     workLocation?: WorkLocation,
-    isHalfDay?: boolean
+    isHalfDay?: boolean,
+    facePhotoData?: string
   ) => {
     if (!user) return { error: new Error('Not authenticated'), locationError: false };
 
@@ -206,6 +207,16 @@ export const useAttendance = () => {
         variant: 'destructive' 
       });
       return { error: new Error('Work location required'), locationError: false };
+    }
+
+    // Require face photo for present/half-day status
+    if ((status === 'present' || isHalfDay) && !facePhotoData) {
+      toast({ 
+        title: 'Face Photo Required', 
+        description: 'Please capture your face photo', 
+        variant: 'destructive' 
+      });
+      return { error: new Error('Face photo required'), locationError: false };
     }
 
     // For present/half-day status, verify GPS location if required
@@ -258,6 +269,47 @@ export const useAttendance = () => {
       }
     }
 
+    // Upload face photo if provided
+    let facePhotoUrl: string | null = null;
+    if (facePhotoData && (status === 'present' || isHalfDay)) {
+      try {
+        // Convert base64 to blob
+        const base64Data = facePhotoData.split(',')[1];
+        const binaryData = atob(base64Data);
+        const bytes = new Uint8Array(binaryData.length);
+        for (let i = 0; i < binaryData.length; i++) {
+          bytes[i] = binaryData.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'image/jpeg' });
+        
+        // Upload to storage
+        const fileName = `${user.id}/${new Date().toISOString().split('T')[0]}_${Date.now()}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('attendance-faces')
+          .upload(fileName, blob, { contentType: 'image/jpeg' });
+        
+        if (uploadError) {
+          console.error('Face photo upload error:', uploadError);
+          toast({ 
+            title: 'Photo Upload Failed', 
+            description: 'Could not upload face photo. Please try again.', 
+            variant: 'destructive' 
+          });
+          return { error: uploadError, locationError: false };
+        }
+        
+        facePhotoUrl = uploadData.path;
+      } catch (uploadErr) {
+        console.error('Face photo processing error:', uploadErr);
+        toast({ 
+          title: 'Photo Processing Failed', 
+          description: 'Could not process face photo. Please try again.', 
+          variant: 'destructive' 
+        });
+        return { error: new Error('Photo processing failed'), locationError: false };
+      }
+    }
+
     const { error } = await supabase.from('attendance').insert({
       user_id: user.id,
       status,
@@ -267,7 +319,8 @@ export const useAttendance = () => {
       longitude,
       location_verified: locationVerified,
       half_day: isHalfDay ?? false,
-      work_location: workLocation || null
+      work_location: workLocation || null,
+      face_photo_url: facePhotoUrl
     } as any);
 
     if (error) {
