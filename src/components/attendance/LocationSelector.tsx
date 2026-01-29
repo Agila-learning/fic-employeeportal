@@ -69,11 +69,12 @@ const LocationSelector = ({ value, onChange, disabled }: LocationSelectorProps) 
         <div className="space-y-1">
           <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
             <Navigation className="h-3 w-3" />
-            GPS verification required - within 1km of either Krishnagiri office
+            GPS verification required - within radius of any Krishnagiri office
           </p>
           <p className="text-[10px] text-muted-foreground pl-4">
-            • KNT Manickam Road, New Bus Stand<br/>
-            • RK Towers, Wahab Nagar
+            • KNT Manickam Road, New Bus Stand (1km)<br/>
+            • RK Towers, Wahab Nagar (1km)<br/>
+            • 158 A, Rayakottai Rd, Wahab Nagar (500m)
           </p>
         </div>
       )}
