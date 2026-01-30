@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -86,14 +86,41 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
     }
   }, [isFrontCamera, onCapture, stopCamera]);
 
-  const toggleCamera = useCallback(() => {
-    setIsFrontCamera(prev => !prev);
+  const toggleCamera = useCallback(async () => {
+    const newFacingMode = !isFrontCamera;
+    setIsFrontCamera(newFacingMode);
+    
     if (isStreaming) {
-      stopCamera();
-      // Will restart with new facing mode
-      setTimeout(() => startCamera(), 100);
+      // Stop existing stream first
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
+      // CRITICAL: getUserMedia called directly in click handler - no setTimeout
+      try {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: newFacingMode ? 'user' : 'environment',
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+          },
+          audio: false,
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      } catch (err: any) {
+        console.error('Camera toggle error:', err);
+        setError('Failed to switch camera. Please try again.');
+        setIsStreaming(false);
+      }
     }
-  }, [isStreaming, stopCamera, startCamera]);
+  }, [isFrontCamera, isStreaming]);
 
   const retakePhoto = useCallback(() => {
     onCapture('');
@@ -101,9 +128,13 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
   }, [onCapture, startCamera]);
 
   // Cleanup on unmount
-  const handleUnmount = useCallback(() => {
-    stopCamera();
-  }, [stopCamera]);
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-3">
