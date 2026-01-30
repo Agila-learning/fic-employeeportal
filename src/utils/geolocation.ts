@@ -20,7 +20,7 @@ export interface OfficeLocation {
   geoPoints?: GeoPoint[];
 }
 
-// Krishnagiri has 3 office locations - employees can mark from any
+// Krishnagiri has 4 office locations - employees can mark from any
 const KRISHNAGIRI_GEO_POINTS: GeoPoint[] = [
   {
     latitude: 12.527334,
@@ -39,6 +39,12 @@ const KRISHNAGIRI_GEO_POINTS: GeoPoint[] = [
     longitude: 78.2155,
     radiusMeters: 500,
     address: '158 A, Phase 1/1073, Rayakottai Rd, Wahab Nagar, Krishnagiri',
+  },
+  {
+    latitude: 12.5267,
+    longitude: 78.2027,
+    radiusMeters: 300,
+    address: 'G6G3+M3V Wahab Nagar, Krishnagiri (Extended Area)',
   },
 ];
 
