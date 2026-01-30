@@ -242,6 +242,20 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
         capturedImage && "border-success/50 border-solid",
         error && "border-destructive/50"
       )}>
+        {/* Always render video element so ref is available, hide when not streaming */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          webkit-playsinline="true"
+          className={cn(
+            "w-full h-48 object-cover",
+            isFrontCamera && "scale-x-[-1]",
+            (!isStreaming || capturedImage) && "hidden"
+          )}
+        />
+        
         {/* Show captured image */}
         {capturedImage ? (
           <div className="relative">
@@ -255,20 +269,7 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
               Captured
             </div>
           </div>
-        ) : isStreaming ? (
-          /* Show video stream */
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            webkit-playsinline="true"
-            className={cn(
-              "w-full h-48 object-cover",
-              isFrontCamera && "scale-x-[-1]"
-            )}
-          />
-        ) : isLoading ? (
+        ) : isStreaming ? null : isLoading ? (
           /* Show loading state */
           <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
             <Loader2 className="h-10 w-10 mb-2 animate-spin text-primary" />
