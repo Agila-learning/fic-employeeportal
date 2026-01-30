@@ -77,8 +77,8 @@ const AttendanceCard = () => {
   }, [myAttendance, holidays]);
 
   const now = new Date();
-  const cutoffHour = 10;
-  const cutoffMinute = 30;
+  const cutoffHour = 12; // Temporarily extended for testing
+  const cutoffMinute = 0;
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const cutoffMinutes = cutoffHour * 60 + cutoffMinute;
   const isBeforeCutoff = currentMinutes < cutoffMinutes;
@@ -240,7 +240,7 @@ const AttendanceCard = () => {
             <div className="text-center py-2">
               <XCircle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground mb-1" />
               <p className="text-xs sm:text-sm text-muted-foreground">Window closed</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Mark before 10:30 AM</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Mark before 12:00 PM</p>
             </div>
           )}
         </CardContent>
