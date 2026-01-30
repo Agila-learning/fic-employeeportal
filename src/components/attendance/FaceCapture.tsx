@@ -29,6 +29,14 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
     setIsLoading(true);
     
     try {
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('[Camera] getUserMedia not available');
+        setError('Camera not supported on this browser. Please use Chrome, Safari, or Firefox.');
+        setIsLoading(false);
+        return;
+      }
+
       // Stop any existing stream first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -45,55 +53,79 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
         audio: false,
       };
 
-      console.log('[Camera] Requesting access with constraints:', constraints);
+      console.log('[Camera] Requesting access with constraints:', JSON.stringify(constraints));
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('[Camera] Stream obtained:', stream.id);
+      console.log('[Camera] Stream obtained:', stream.id, 'Tracks:', stream.getTracks().length);
       
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Set up video element properly
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('autoplay', 'true');
+        videoRef.current.muted = true;
+        
         // Wait for video to be ready before playing
         videoRef.current.onloadedmetadata = async () => {
+          console.log('[Camera] Video metadata loaded');
           try {
             await videoRef.current?.play();
-            console.log('[Camera] Video playing');
+            console.log('[Camera] Video playing successfully');
             setIsStreaming(true);
             setIsLoading(false);
-          } catch (playErr) {
-            console.error('[Camera] Play error:', playErr);
-            setError('Failed to start video preview.');
+          } catch (playErr: any) {
+            console.error('[Camera] Play error:', playErr.name, playErr.message);
+            setError('Failed to start video preview. Please try again.');
             setIsLoading(false);
           }
         };
+        
+        // Handle video errors
+        videoRef.current.onerror = (e) => {
+          console.error('[Camera] Video element error:', e);
+          setError('Video playback error. Please try again.');
+          setIsLoading(false);
+        };
       } else {
+        console.error('[Camera] videoRef.current is null');
+        setError('Video element not ready. Please try again.');
         setIsLoading(false);
       }
     } catch (err: any) {
       console.error('[Camera] Error:', err.name, err.message);
       setIsLoading(false);
       
-      if (err.name === 'NotAllowedError') {
-        setError('Camera access denied. Please enable camera permissions in your browser settings.');
-      } else if (err.name === 'NotFoundError') {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setError('Camera access denied. Please enable camera permissions in your browser settings and try again.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setError('No camera found on this device.');
-      } else if (err.name === 'NotReadableError') {
-        setError('Camera is in use by another app. Please close other apps using the camera.');
-      } else if (err.name === 'OverconstrainedError') {
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('Camera is in use by another app. Please close other apps using the camera and try again.');
+      } else if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
         // Try again without facing mode constraint
+        console.log('[Camera] Trying fallback without constraints');
         try {
           const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           streamRef.current = fallbackStream;
           if (videoRef.current) {
             videoRef.current.srcObject = fallbackStream;
+            videoRef.current.setAttribute('playsinline', 'true');
             await videoRef.current.play();
             setIsStreaming(true);
+            console.log('[Camera] Fallback stream working');
           }
-        } catch (fallbackErr) {
+        } catch (fallbackErr: any) {
+          console.error('[Camera] Fallback also failed:', fallbackErr);
           setError('Failed to access camera. Please try again.');
         }
+      } else if (err.name === 'SecurityError') {
+        setError('Camera access blocked by browser security. Please ensure you are using HTTPS.');
+      } else if (err.name === 'AbortError') {
+        setError('Camera access was aborted. Please try again.');
       } else {
-        setError('Failed to access camera. Please try again.');
+        setError(`Camera error: ${err.message || 'Unknown error'}. Please try again.`);
       }
     }
   };
@@ -230,6 +262,7 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
             autoPlay
             playsInline
             muted
+            webkit-playsinline="true"
             className={cn(
               "w-full h-48 object-cover",
               isFrontCamera && "scale-x-[-1]"
