@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Camera, RefreshCw, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FaceCaptureProps {
@@ -12,48 +12,93 @@ interface FaceCaptureProps {
 const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const isFrontCameraRef = useRef(true);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const startCamera = useCallback(async () => {
+  // Keep ref in sync with state
+  useEffect(() => {
+    isFrontCameraRef.current = isFrontCamera;
+  }, [isFrontCamera]);
+
+  // CRITICAL: getUserMedia must be called directly from user gesture (click handler)
+  const startCamera = async () => {
     setError(null);
+    setIsLoading(true);
+    
     try {
-      // Stop any existing stream
+      // Stop any existing stream first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
 
+      // Request camera access - MUST be direct from click, no setTimeout/useEffect
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: isFrontCamera ? 'user' : 'environment',
+          facingMode: isFrontCameraRef.current ? 'user' : 'environment',
           width: { ideal: 640 },
           height: { ideal: 480 },
         },
         audio: false,
       };
 
+      console.log('[Camera] Requesting access with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('[Camera] Stream obtained:', stream.id);
+      
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setIsStreaming(true);
+        // Wait for video to be ready before playing
+        videoRef.current.onloadedmetadata = async () => {
+          try {
+            await videoRef.current?.play();
+            console.log('[Camera] Video playing');
+            setIsStreaming(true);
+            setIsLoading(false);
+          } catch (playErr) {
+            console.error('[Camera] Play error:', playErr);
+            setError('Failed to start video preview.');
+            setIsLoading(false);
+          }
+        };
+      } else {
+        setIsLoading(false);
       }
     } catch (err: any) {
-      console.error('Camera error:', err);
+      console.error('[Camera] Error:', err.name, err.message);
+      setIsLoading(false);
+      
       if (err.name === 'NotAllowedError') {
-        setError('Camera access denied. Please enable camera permissions.');
+        setError('Camera access denied. Please enable camera permissions in your browser settings.');
       } else if (err.name === 'NotFoundError') {
         setError('No camera found on this device.');
+      } else if (err.name === 'NotReadableError') {
+        setError('Camera is in use by another app. Please close other apps using the camera.');
+      } else if (err.name === 'OverconstrainedError') {
+        // Try again without facing mode constraint
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          streamRef.current = fallbackStream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = fallbackStream;
+            await videoRef.current.play();
+            setIsStreaming(true);
+          }
+        } catch (fallbackErr) {
+          setError('Failed to access camera. Please try again.');
+        }
       } else {
         setError('Failed to access camera. Please try again.');
       }
     }
-  }, [isFrontCamera]);
+  };
 
-  const stopCamera = useCallback(() => {
+  const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -62,33 +107,36 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
       videoRef.current.srcObject = null;
     }
     setIsStreaming(false);
-  }, []);
+    setIsLoading(false);
+  };
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = () => {
     if (!videoRef.current) return;
 
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     
     if (ctx) {
       // Flip horizontally for front camera (mirror effect)
-      if (isFrontCamera) {
+      if (isFrontCameraRef.current) {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
       }
       ctx.drawImage(videoRef.current, 0, 0);
       
       const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      console.log('[Camera] Photo captured');
       onCapture(imageData);
       stopCamera();
     }
-  }, [isFrontCamera, onCapture, stopCamera]);
+  };
 
-  const toggleCamera = useCallback(async () => {
+  const toggleCamera = async () => {
     const newFacingMode = !isFrontCamera;
     setIsFrontCamera(newFacingMode);
+    isFrontCameraRef.current = newFacingMode;
     
     if (isStreaming) {
       // Stop existing stream first
@@ -115,17 +163,17 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
           await videoRef.current.play();
         }
       } catch (err: any) {
-        console.error('Camera toggle error:', err);
+        console.error('[Camera] Toggle error:', err);
         setError('Failed to switch camera. Please try again.');
         setIsStreaming(false);
       }
     }
-  }, [isFrontCamera, isStreaming]);
+  };
 
-  const retakePhoto = useCallback(() => {
+  const retakePhoto = () => {
     onCapture('');
     startCamera();
-  }, [onCapture, startCamera]);
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -187,6 +235,13 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
               isFrontCamera && "scale-x-[-1]"
             )}
           />
+        ) : isLoading ? (
+          /* Show loading state */
+          <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
+            <Loader2 className="h-10 w-10 mb-2 animate-spin text-primary" />
+            <p className="text-sm">Opening camera...</p>
+            <p className="text-xs opacity-70">Please allow camera access</p>
+          </div>
         ) : (
           /* Show placeholder */
           <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
@@ -246,12 +301,21 @@ const FaceCapture = ({ onCapture, disabled, capturedImage }: FaceCaptureProps) =
           <Button
             type="button"
             onClick={startCamera}
-            disabled={disabled}
+            disabled={disabled || isLoading}
             className="flex-1"
             size="sm"
           >
-            <Camera className="h-3 w-3 mr-1" />
-            Open Camera
+            {isLoading ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Opening...
+              </>
+            ) : (
+              <>
+                <Camera className="h-3 w-3 mr-1" />
+                Open Camera
+              </>
+            )}
           </Button>
         )}
       </div>
