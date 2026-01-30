@@ -165,15 +165,15 @@ export const useAttendance = () => {
   ) => {
     if (!user) return { error: new Error('Not authenticated'), locationError: false };
 
-    // Check if it's past 10:30 AM
+    // Check if it's past 12:00 PM (temporarily extended for testing)
     const now = new Date();
-    const cutoffHour = 10;
-    const cutoffMinute = 30;
+    const cutoffHour = 12;
+    const cutoffMinute = 0;
     
     if (now.getHours() > cutoffHour || (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute)) {
       toast({ 
         title: "Attendance window closed",
-        description: "Attendance can only be marked before 10:30 AM",
+        description: "Attendance can only be marked before 12:00 PM",
         variant: "destructive"
       });
       return { error: new Error('Attendance window closed'), locationError: false };
@@ -454,8 +454,8 @@ export const useAttendance = () => {
 
   const canMarkAttendance = () => {
     const now = new Date();
-    const cutoffHour = 10;
-    const cutoffMinute = 30;
+    const cutoffHour = 12; // Temporarily extended for testing
+    const cutoffMinute = 0;
     const isBeforeCutoff = now.getHours() < cutoffHour || 
       (now.getHours() === cutoffHour && now.getMinutes() < cutoffMinute);
     return isBeforeCutoff && !todayAttendance;
