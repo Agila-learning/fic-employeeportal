@@ -52,6 +52,9 @@ const AdminAttendance = () => {
     return { start, end };
   };
 
+  // Calculate stats for today
+  const today = new Date().toISOString().split('T')[0];
+
   const filteredAttendance = attendance.filter(a => {
     const matchesSearch = a.user_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = !dateFilter || a.date === dateFilter;
@@ -102,8 +105,6 @@ const AdminAttendance = () => {
     );
   };
 
-  // Calculate stats for today
-  const today = new Date().toISOString().split('T')[0];
   const todayRecords = attendance.filter(a => a.date === today);
   const presentToday = todayRecords.filter(a => a.status === 'present' && !a.half_day).length;
   const halfDayToday = todayRecords.filter(a => a.half_day === true).length;
