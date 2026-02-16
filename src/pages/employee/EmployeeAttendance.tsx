@@ -19,7 +19,7 @@ const EmployeeAttendance = () => {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">My Attendance</h1>
-              <p className="text-white/70 text-sm mt-1">Mark your daily attendance before 12:00 PM</p>
+              <p className="text-white/70 text-sm mt-1">Mark your daily attendance before 10:30 AM</p>
             </div>
           </div>
         </div>

@@ -173,7 +173,7 @@ export const useAttendance = () => {
     if (now.getHours() > cutoffHour || (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute)) {
       toast({ 
         title: "Attendance window closed",
-        description: "Attendance can only be marked before 12:00 PM",
+        description: "Attendance can only be marked before 10:30 AM",
         variant: "destructive"
       });
       return { error: new Error('Attendance window closed'), locationError: false };
@@ -199,8 +199,8 @@ export const useAttendance = () => {
       return { error: new Error('Leave reason required'), locationError: false };
     }
 
-    // Require work location for present/half-day status
-    if ((status === 'present' || isHalfDay) && !workLocation) {
+    // Require work location for present status only (not half-day or absent)
+    if (status === 'present' && !isHalfDay && !workLocation) {
       toast({ 
         title: 'Location Required', 
         description: 'Please select your work location', 
@@ -209,8 +209,8 @@ export const useAttendance = () => {
       return { error: new Error('Work location required'), locationError: false };
     }
 
-    // Require face photo for present/half-day status
-    if ((status === 'present' || isHalfDay) && !facePhotoData) {
+    // Require face photo for present status only (not half-day or absent)
+    if (status === 'present' && !isHalfDay && !facePhotoData) {
       toast({ 
         title: 'Face Photo Required', 
         description: 'Please capture your face photo', 
@@ -224,7 +224,7 @@ export const useAttendance = () => {
     let longitude: number | undefined;
     let locationVerified = false;
 
-    if ((status === 'present' || isHalfDay) && workLocation) {
+    if (status === 'present' && !isHalfDay && workLocation) {
       const selectedLocation = OFFICE_LOCATIONS[workLocation];
       
       if (selectedLocation.requiresGPS) {
@@ -271,7 +271,7 @@ export const useAttendance = () => {
 
     // Upload face photo if provided
     let facePhotoUrl: string | null = null;
-    if (facePhotoData && (status === 'present' || isHalfDay)) {
+    if (facePhotoData && status === 'present' && !isHalfDay) {
       try {
         // Convert base64 to blob
         const base64Data = facePhotoData.split(',')[1];
