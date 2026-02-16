@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAttendance, Attendance } from '@/hooks/useAttendance';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -26,15 +27,57 @@ const AdminAttendance = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'half_day' | 'absent'>('all');
+  const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
   const [showMarkDialog, setShowMarkDialog] = useState(false);
   const { toast } = useToast();
+
+  const getWeekRange = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return { start: monday, end: sunday };
+  };
+
+  const getMonthRange = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start, end };
+  };
 
   const filteredAttendance = attendance.filter(a => {
     const matchesSearch = a.user_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = !dateFilter || a.date === dateFilter;
     const matchesMonth = !monthFilter || a.date.startsWith(monthFilter);
-    return matchesSearch && matchesDate && matchesMonth;
+    
+    // Status filter
+    let matchesStatus = true;
+    if (statusFilter === 'present') matchesStatus = a.status === 'present' && !a.half_day;
+    else if (statusFilter === 'half_day') matchesStatus = a.half_day === true;
+    else if (statusFilter === 'absent') matchesStatus = a.status === 'absent';
+
+    // Period filter
+    let matchesPeriod = true;
+    if (periodFilter === 'today') {
+      matchesPeriod = a.date === today;
+    } else if (periodFilter === 'week') {
+      const { start, end } = getWeekRange();
+      const recordDate = new Date(a.date);
+      matchesPeriod = recordDate >= start && recordDate <= end;
+    } else if (periodFilter === 'month') {
+      const { start, end } = getMonthRange();
+      const recordDate = new Date(a.date);
+      matchesPeriod = recordDate >= start && recordDate <= end;
+    }
+
+    return matchesSearch && matchesDate && matchesMonth && matchesStatus && matchesPeriod;
   });
 
   const getStatusBadge = (record: Attendance) => {
@@ -66,7 +109,7 @@ const AdminAttendance = () => {
   const halfDayToday = todayRecords.filter(a => a.half_day === true).length;
   const absentToday = todayRecords.filter(a => a.status === 'absent').length;
 
-  // Export to Excel
+  // Export to Excel with separate sheets per status
   const exportToExcel = () => {
     const dataToExport = filteredAttendance.length > 0 ? filteredAttendance : attendance;
     
@@ -75,8 +118,7 @@ const AdminAttendance = () => {
       return;
     }
 
-    // Prepare data for Excel
-    const excelData = dataToExport.map(record => ({
+    const mapRecord = (record: Attendance) => ({
       'Employee Name': record.user_name || 'Unknown',
       'Date': record.date,
       'Status': record.half_day ? 'Half Day' : (record.status === 'present' ? 'Present' : 'Absent'),
@@ -84,30 +126,46 @@ const AdminAttendance = () => {
       'Marked At': new Date(record.marked_at).toLocaleTimeString(),
       'Leave Reason': record.status === 'absent' ? (record.leave_reason || '-') : '-',
       'Location Verified': record.location_verified ? 'Yes' : 'No'
-    }));
+    });
 
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
-
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 25 }, // Employee Name
-      { wch: 12 }, // Date
-      { wch: 10 }, // Status
-      { wch: 20 }, // Work Location
-      { wch: 12 }, // Marked At
-      { wch: 40 }, // Leave Reason
-      { wch: 15 }, // Location Verified
+    const colWidths = [
+      { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 12 }, { wch: 40 }, { wch: 15 },
     ];
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Attendance Report');
+    const wb = XLSX.utils.book_new();
 
-    // Generate filename
-    const fileName = `attendance_report_${monthFilter || dateFilter || today}.xlsx`;
-    
-    // Download file
-    XLSX.writeFile(wb, fileName);
+    // All records sheet
+    const allSheet = XLSX.utils.json_to_sheet(dataToExport.map(mapRecord));
+    allSheet['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(wb, allSheet, 'All Records');
+
+    // Present sheet
+    const presentRecords = dataToExport.filter(a => a.status === 'present' && !a.half_day);
+    if (presentRecords.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(presentRecords.map(mapRecord));
+      ws['!cols'] = colWidths;
+      XLSX.utils.book_append_sheet(wb, ws, 'Present');
+    }
+
+    // Half Day sheet
+    const halfDayRecords = dataToExport.filter(a => a.half_day === true);
+    if (halfDayRecords.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(halfDayRecords.map(mapRecord));
+      ws['!cols'] = colWidths;
+      XLSX.utils.book_append_sheet(wb, ws, 'Half Day');
+    }
+
+    // Absent sheet
+    const absentRecords = dataToExport.filter(a => a.status === 'absent');
+    if (absentRecords.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(absentRecords.map(mapRecord));
+      ws['!cols'] = colWidths;
+      XLSX.utils.book_append_sheet(wb, ws, 'Absent');
+    }
+
+    const periodLabel = periodFilter !== 'all' ? periodFilter : (monthFilter || dateFilter || today);
+    const statusLabel = statusFilter !== 'all' ? `_${statusFilter}` : '';
+    XLSX.writeFile(wb, `attendance_report_${periodLabel}${statusLabel}.xlsx`);
 
     toast({ title: 'Success', description: 'Attendance report exported successfully' });
   };
@@ -291,8 +349,8 @@ const AdminAttendance = () => {
         <Card>
           <CardHeader>
             <CardTitle>Attendance Records</CardTitle>
-            <div className="flex gap-4 mt-4">
-              <div className="relative flex-1 max-w-sm">
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name..."
@@ -301,6 +359,28 @@ const AdminAttendance = () => {
                   className="pl-10"
                 />
               </div>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="half_day">Half Day</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as any)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
               <Input
                 type="date"
                 value={dateFilter}
