@@ -40,7 +40,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get all active employees
+    // Get all active employees (exclude admins)
+    const { data: adminRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+
+    const adminUserIds = new Set((adminRoles || []).map((r) => r.user_id));
+
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("user_id")
@@ -58,9 +65,9 @@ Deno.serve(async (req) => {
 
     const markedUserIds = new Set(todayAttendance?.map((a) => a.user_id) || []);
 
-    // Find employees who haven't marked attendance
+    // Find employees who haven't marked attendance (exclude admins)
     const unmarkedEmployees = (profiles || []).filter(
-      (p) => !markedUserIds.has(p.user_id)
+      (p) => !markedUserIds.has(p.user_id) && !adminUserIds.has(p.user_id)
     );
 
     if (unmarkedEmployees.length === 0) {
