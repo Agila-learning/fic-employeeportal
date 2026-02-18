@@ -60,7 +60,7 @@ const AnnouncementNotification = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-[360px] sm:w-96 p-0" align="end">
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h4 className="font-semibold flex items-center gap-2">
             <Megaphone className="h-4 w-4 text-amber-500" />
@@ -101,8 +101,8 @@ const AnnouncementNotification = () => {
                         <span className="h-2 w-2 rounded-full bg-amber-500 mt-2 shrink-0" />
                       )}
                       <div className={cn("flex-1 min-w-0", !isUnread && "ml-5")}>
-                        <h5 className="font-medium text-sm truncate">{announcement.title}</h5>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        <h5 className="font-medium text-sm break-words">{announcement.title}</h5>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-3 break-words">
                           {announcement.message}
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
