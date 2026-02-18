@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useLocation, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -29,6 +30,22 @@ const Sidebar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [pendingLeaveCount, setPendingLeaveCount] = useState(0);
+
+  // Fetch pending leave requests count for admin
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      setPendingLeaveCount(count || 0);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [user?.role]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -154,6 +171,11 @@ const Sidebar = () => {
                 >
                   <link.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-white" : "text-amber-400")} />
                   <span className="flex-1">{link.label}</span>
+                  {link.to === '/admin/leave-requests' && pendingLeaveCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white animate-pulse">
+                      {pendingLeaveCount}
+                    </span>
+                  )}
                   {isActive && <ChevronRight className="h-4 w-4" />}
                 </Link>
               );
