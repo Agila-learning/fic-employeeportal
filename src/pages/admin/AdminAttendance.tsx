@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAttendance, Attendance } from '@/hooks/useAttendance';
@@ -8,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText, Pencil, UserPlus, Clock, MapPin } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarCheck, CheckCircle, XCircle, Search, Download, FileText, Pencil, UserPlus, Clock, MapPin, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import AttendanceEditDialog from '@/components/attendance/AttendanceEditDialog';
@@ -31,6 +34,8 @@ const AdminAttendance = () => {
   const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
   const [showMarkDialog, setShowMarkDialog] = useState(false);
+  const [exportFromDate, setExportFromDate] = useState<Date | undefined>(undefined);
+  const [exportToDate, setExportToDate] = useState<Date | undefined>(undefined);
   const { toast } = useToast();
 
   const getWeekRange = () => {
@@ -151,10 +156,24 @@ const AdminAttendance = () => {
 
   // Export to Excel with summary + detailed sheets with colors
   const exportToExcel = () => {
-    const dataToExport = filteredAttendance.length > 0 ? filteredAttendance : attendance;
+    let dataToExport = filteredAttendance.length > 0 ? filteredAttendance : attendance;
     
+    // Apply export date range filter
+    if (exportFromDate || exportToDate) {
+      dataToExport = dataToExport.filter(a => {
+        const recordDate = new Date(a.date + 'T00:00:00');
+        if (exportFromDate && recordDate < exportFromDate) return false;
+        if (exportToDate) {
+          const endOfDay = new Date(exportToDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (recordDate > endOfDay) return false;
+        }
+        return true;
+      });
+    }
+
     if (dataToExport.length === 0) {
-      toast({ title: 'No Data', description: 'No attendance records to export', variant: 'destructive' });
+      toast({ title: 'No Data', description: 'No attendance records to export for selected range', variant: 'destructive' });
       return;
     }
 
@@ -346,7 +365,9 @@ const AdminAttendance = () => {
       XLSX.utils.book_append_sheet(wb, ws, 'Absent');
     }
 
-    const periodLabel = periodFilter !== 'all' ? periodFilter : (monthFilter || dateFilter || today);
+    const periodLabel = exportFromDate && exportToDate 
+      ? `${format(exportFromDate, 'yyyyMMdd')}_to_${format(exportToDate, 'yyyyMMdd')}`
+      : periodFilter !== 'all' ? periodFilter : (monthFilter || dateFilter || today);
     const statusLabel = statusFilter !== 'all' ? `_${statusFilter}` : '';
     XLSX.writeFile(wb, `attendance_report_${periodLabel}${statusLabel}.xlsx`);
 
@@ -387,17 +408,81 @@ const AdminAttendance = () => {
             <h1 className="text-3xl font-bold text-foreground">Attendance Management</h1>
             <p className="text-muted-foreground mt-1">View, edit, and track employee attendance</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <Button onClick={() => setShowMarkDialog(true)} variant="default" className="gap-2">
               <UserPlus className="h-4 w-4" />
               Mark Attendance
             </Button>
-            <Button onClick={exportToExcel} variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export Excel
-            </Button>
           </div>
         </div>
+
+        {/* Export with Date Range */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Export Overall Attendance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">From Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {exportFromDate ? format(exportFromDate, 'PPP') : 'Pick date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={exportFromDate}
+                      onSelect={setExportFromDate}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">To Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {exportToDate ? format(exportToDate, 'PPP') : 'Pick date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={exportToDate}
+                      onSelect={setExportToDate}
+                      disabled={(date) => date > new Date() || (exportFromDate ? date < exportFromDate : false)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <Button onClick={exportToExcel} className="gap-2">
+                <Download className="h-4 w-4" />
+                Export Excel
+              </Button>
+              {(exportFromDate || exportToDate) && (
+                <Button variant="ghost" size="sm" onClick={() => { setExportFromDate(undefined); setExportToDate(undefined); }}>
+                  Clear Dates
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              * Leave dates empty to export all available records. Filters (status, period) are also applied.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">

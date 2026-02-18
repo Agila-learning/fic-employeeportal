@@ -150,38 +150,109 @@ const EmployeeAttendanceExport = ({ employees, holidays }: EmployeeAttendanceExp
       // Create workbook
       const wb = XLSX.utils.book_new();
 
-      // Summary sheet
+      // ===== Color helpers =====
+      const headerStyle = {
+        fill: { fgColor: { rgb: '1A5276' } },
+        font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+        alignment: { horizontal: 'center' as const, vertical: 'center' as const },
+        border: { top: { style: 'thin' as const, color: { rgb: '000000' } }, bottom: { style: 'thin' as const, color: { rgb: '000000' } }, left: { style: 'thin' as const, color: { rgb: '000000' } }, right: { style: 'thin' as const, color: { rgb: '000000' } } }
+      };
+      const getStatusColor = (status: string) => {
+        if (status === 'Present') return 'D5F5E3';
+        if (status === 'Half Day') return 'FEF9E7';
+        if (status === 'Absent' || status === 'Not Marked') return 'FADBD8';
+        if (status.includes('Sunday')) return 'D6EAF8';
+        if (status.includes('Holiday')) return 'E8DAEF';
+        return 'FFFFFF';
+      };
+      const cellBorder = {
+        top: { style: 'thin' as const, color: { rgb: 'D0D0D0' } },
+        bottom: { style: 'thin' as const, color: { rgb: 'D0D0D0' } },
+        left: { style: 'thin' as const, color: { rgb: 'D0D0D0' } },
+        right: { style: 'thin' as const, color: { rgb: 'D0D0D0' } },
+      };
+
+      // ===== Summary sheet with styling =====
       const summaryData = [
-        { 'Metric': 'Employee Name', 'Value': employee.name },
-        { 'Metric': 'Email', 'Value': employee.email },
-        { 'Metric': 'Report Period', 'Value': `${format(fromDate, 'dd MMM yyyy')} - ${format(toDate, 'dd MMM yyyy')}` },
-        { 'Metric': 'Total Days', 'Value': totalWorkingDays },
-        { 'Metric': '', 'Value': '' },
-        { 'Metric': 'Present Days', 'Value': totalPresent },
-        { 'Metric': 'Half Days', 'Value': totalHalfDay },
-        { 'Metric': 'Absent Days', 'Value': totalAbsent },
-        { 'Metric': 'Sundays (Auto-Present)', 'Value': totalSundays },
-        { 'Metric': 'Holidays (Auto-Present)', 'Value': totalHolidays },
-        { 'Metric': '', 'Value': '' },
-        { 'Metric': 'Effective Present Days', 'Value': effectivePresent },
-        { 'Metric': 'Attendance Percentage', 'Value': `${attendancePercentage}%` },
+        ['Employee Attendance Report'],
+        [],
+        ['Employee Name', employee.name],
+        ['Email', employee.email],
+        ['Report Period', `${format(fromDate, 'dd MMM yyyy')} - ${format(toDate, 'dd MMM yyyy')}`],
+        ['Total Days', totalWorkingDays],
+        [],
+        ['Metric', 'Count'],
+        ['Present Days', totalPresent],
+        ['Half Days', totalHalfDay],
+        ['Absent Days', totalAbsent],
+        ['Sundays (Auto-Present)', totalSundays],
+        ['Holidays (Auto-Present)', totalHolidays],
+        [],
+        ['Effective Present Days', effectivePresent],
+        ['Attendance Percentage', `${attendancePercentage}%`],
       ];
 
-      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-      wsSummary['!cols'] = [{ wch: 25 }, { wch: 40 }];
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+      wsSummary['!cols'] = [{ wch: 28 }, { wch: 40 }];
+      // Merge title row
+      wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+      // Style title
+      const titleCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
+      if (wsSummary[titleCell]) {
+        wsSummary[titleCell].s = {
+          fill: { fgColor: { rgb: '1A5276' } },
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
+          alignment: { horizontal: 'center', vertical: 'center' },
+        };
+      }
+      // Style metric header row (row 7)
+      for (let c = 0; c < 2; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 7, c });
+        if (wsSummary[ref]) wsSummary[ref].s = headerStyle;
+      }
+      // Color the attendance % row
+      const pctRow = 15;
+      const pctBg = attendancePercentage >= 80 ? 'D5F5E3' : attendancePercentage >= 60 ? 'FEF9E7' : 'FADBD8';
+      for (let c = 0; c < 2; c++) {
+        const ref = XLSX.utils.encode_cell({ r: pctRow, c });
+        if (wsSummary[ref]) wsSummary[ref].s = {
+          fill: { fgColor: { rgb: pctBg } },
+          font: { bold: true, sz: 12 },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: cellBorder,
+        };
+      }
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
-      // Details sheet
-      const wsDetails = XLSX.utils.json_to_sheet(excelData);
+      // ===== Details sheet with color coding =====
+      const detailCols = ['Date', 'Day', 'Status', 'Work Location', 'Marked At', 'Location Verified', 'Remarks'];
+      const wsDetails = XLSX.utils.aoa_to_sheet([detailCols]);
       wsDetails['!cols'] = [
-        { wch: 12 }, // Date
-        { wch: 12 }, // Day
-        { wch: 20 }, // Status
-        { wch: 18 }, // Work Location
-        { wch: 12 }, // Marked At
-        { wch: 16 }, // Location Verified
-        { wch: 40 }, // Remarks
+        { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 16 }, { wch: 40 },
       ];
+      // Style header
+      for (let c = 0; c < 7; c++) {
+        const ref = XLSX.utils.encode_cell({ r: 0, c });
+        if (wsDetails[ref]) wsDetails[ref].s = headerStyle;
+      }
+
+      excelData.forEach((row, idx) => {
+        const rowData = [row['Date'], row['Day'], row['Status'], row['Work Location'], row['Marked At'], row['Location Verified'], row['Remarks']];
+        XLSX.utils.sheet_add_aoa(wsDetails, [rowData], { origin: idx + 1 });
+        const bgColor = getStatusColor(row['Status']);
+        for (let c = 0; c < 7; c++) {
+          const ref = XLSX.utils.encode_cell({ r: idx + 1, c });
+          if (wsDetails[ref]) {
+            wsDetails[ref].s = {
+              fill: { fgColor: { rgb: bgColor } },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: cellBorder,
+            };
+          }
+        }
+      });
+
+      wsDetails['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: excelData.length, c: 6 } });
       XLSX.utils.book_append_sheet(wb, wsDetails, 'Attendance Details');
 
       // Generate filename
