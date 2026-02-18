@@ -59,6 +59,7 @@ const Sidebar = () => {
     { to: '/admin/reports', icon: FileText, label: 'Reports' },
     { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
     { to: '/admin/attendance', icon: CalendarCheck, label: 'Attendance' },
+    { to: '/admin/leave-requests', icon: CalendarClock, label: 'Leave Requests' },
     { to: '/admin/storage', icon: HardDrive, label: 'Storage' },
     { to: '/admin/invoice', icon: Receipt, label: 'Invoice' },
     { to: '/settings', icon: Settings, label: 'Settings' },
@@ -72,6 +73,7 @@ const Sidebar = () => {
     { to: '/employee/reports', icon: FileText, label: 'Reports' },
     { to: '/employee/attendance', icon: CalendarCheck, label: 'Attendance' },
     { to: '/employee/tasks', icon: ClipboardList, label: 'Tasks' },
+    { to: '/employee/leave', icon: CalendarClock, label: 'Leave Request' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
