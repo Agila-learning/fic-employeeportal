@@ -574,6 +574,7 @@ export type Database = {
         | "job_portal"
         | "website"
         | "other"
+        | "agents"
       lead_status:
         | "nc1"
         | "nc2"
@@ -727,6 +728,7 @@ export const Constants = {
         "job_portal",
         "website",
         "other",
+        "agents",
       ],
       lead_status: [
         "nc1",

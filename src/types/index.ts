@@ -120,5 +120,6 @@ export const SOURCE_OPTIONS: { value: LeadSource; label: string }[] = [
   { value: 'referral', label: 'Referral' },
   { value: 'job_portal', label: 'Job Portal' },
   { value: 'website', label: 'Website' },
+  { value: 'agents', label: 'Agents' },
   { value: 'other', label: 'Other' },
 ];
