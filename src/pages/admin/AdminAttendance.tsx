@@ -425,12 +425,12 @@ const AdminAttendance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-end gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div className="space-y-2">
                 <label className="text-sm font-medium">From Date</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                    <Button variant="outline" className="w-full justify-start text-left font-normal hover:bg-accent">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {exportFromDate ? format(exportFromDate, 'PPP') : 'Pick date'}
                     </Button>
@@ -451,7 +451,7 @@ const AdminAttendance = () => {
                 <label className="text-sm font-medium">To Date</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                    <Button variant="outline" className="w-full justify-start text-left font-normal hover:bg-accent">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {exportToDate ? format(exportToDate, 'PPP') : 'Pick date'}
                     </Button>
@@ -468,15 +468,24 @@ const AdminAttendance = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              <Button onClick={exportToExcel} className="gap-2">
-                <Download className="h-4 w-4" />
-                Export Excel
-              </Button>
-              {(exportFromDate || exportToDate) && (
-                <Button variant="ghost" size="sm" onClick={() => { setExportFromDate(undefined); setExportToDate(undefined); }}>
+              <div className="space-y-2">
+                <label className="text-sm font-medium invisible">Action</label>
+                <Button onClick={exportToExcel} className="w-full gap-2">
+                  <Download className="h-4 w-4" />
+                  Export Excel
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium invisible">Clear</label>
+                <Button 
+                  variant="outline" 
+                  className="w-full gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+                  onClick={() => { setExportFromDate(undefined); setExportToDate(undefined); }}
+                  disabled={!exportFromDate && !exportToDate}
+                >
                   Clear Dates
                 </Button>
-              )}
+              </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               * Leave dates empty to export all available records. Filters (status, period) are also applied.
