@@ -92,7 +92,7 @@ const Auth = () => {
             <div className="mx-auto mb-4 h-24 w-24 rounded-xl shadow-2xl overflow-hidden border-2 border-amber-400/40 hover:border-amber-400/60 transition-all duration-500 hover:scale-105 bg-white">
               <img src={ficLogo} alt="FIC Logo" className="h-full w-full object-contain p-1" />
             </div>
-            <h1 className="text-3xl font-bold text-white drop-shadow-lg">FIC Portal</h1>
+            <h1 className="text-3xl font-bold text-white drop-shadow-lg">FIC Employee Portal</h1>
             <p className="text-amber-400 font-medium mt-1 tracking-wide">Building Future</p>
           </div>
 

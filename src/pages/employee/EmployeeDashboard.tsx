@@ -10,6 +10,8 @@ import AnnouncementsCard from '@/components/dashboard/AnnouncementsCard';
 import TasksCard from '@/components/dashboard/TasksCard';
 import AnnouncementNotification from '@/components/dashboard/AnnouncementNotification';
 import TaskRemindersNotification from '@/components/dashboard/TaskRemindersNotification';
+import LeaveRequestForm from '@/components/leave/LeaveRequestForm';
+import LeaveRequestsList from '@/components/leave/LeaveRequestsList';
 
 import { FileSpreadsheet, CheckCircle, Clock, XCircle, Plus, Bell, ArrowRight, TrendingUp, Sparkles, Trophy, CreditCard, Briefcase } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -218,6 +220,12 @@ const EmployeeDashboard = () => {
           <AttendanceCard />
           <TasksCard />
           <AnnouncementsCard />
+        </div>
+
+        {/* Leave Request Section */}
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+          <LeaveRequestForm />
+          <LeaveRequestsList />
         </div>
 
         {/* Followup Alerts with animation */}

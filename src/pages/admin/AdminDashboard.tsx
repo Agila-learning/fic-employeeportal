@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeadFormDialog from '@/components/leads/LeadFormDialog';
 import { Users, FileSpreadsheet, UserCheck, TrendingUp, CheckCircle, Clock, Bell, ArrowRight, Trophy, CreditCard, Briefcase } from 'lucide-react';
+import AdminLeaveRequests from '@/components/leave/AdminLeaveRequests';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { STATUS_OPTIONS, STATUS_OPTIONS_ADMIN, Lead, INTERESTED_DOMAIN_OPTIONS } from '@/types';
@@ -331,6 +332,9 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Leave Requests Management */}
+        <AdminLeaveRequests />
       </div>
 
       {/* View Lead Dialog */}

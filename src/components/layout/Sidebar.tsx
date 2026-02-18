@@ -114,7 +114,7 @@ const Sidebar = () => {
               <img src={ficLogo} alt="FIC Logo" className="h-10 w-10 object-contain" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">FIC Portal</h1>
+              <h1 className="text-lg font-bold text-white">FIC Employee Portal</h1>
               <p className="text-xs text-amber-400 font-medium">Building Future</p>
             </div>
           </div>
