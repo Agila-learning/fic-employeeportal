@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format, eachDayOfInterval, isSunday as dateFnsIsSunday } from 'date-fns';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';

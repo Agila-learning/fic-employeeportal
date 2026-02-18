@@ -18,7 +18,7 @@ import EmployeeAttendanceExport from '@/components/attendance/EmployeeAttendance
 import AttendanceMapView from '@/components/attendance/AttendanceMapView';
 import LocationTrendReport from '@/components/attendance/LocationTrendReport';
 import { getLocationDisplayName } from '@/utils/geolocation';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 const AdminAttendance = () => {
   const { attendance, loading, updateAttendance, adminMarkAttendance } = useAttendance();
@@ -110,7 +110,46 @@ const AdminAttendance = () => {
   const halfDayToday = todayRecords.filter(a => a.half_day === true).length;
   const absentToday = todayRecords.filter(a => a.status === 'absent').length;
 
-  // Export to Excel with separate sheets per status
+  // Helper to apply cell styles (fill color) to a range
+  const applyHeaderStyle = (ws: XLSX.WorkSheet, colCount: number, fillColor: string) => {
+    for (let c = 0; c < colCount; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+      if (!ws[cellRef]) continue;
+      ws[cellRef].s = {
+        fill: { fgColor: { rgb: fillColor } },
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '000000' } },
+          bottom: { style: 'thin', color: { rgb: '000000' } },
+          left: { style: 'thin', color: { rgb: '000000' } },
+          right: { style: 'thin', color: { rgb: '000000' } },
+        }
+      };
+    }
+  };
+
+  const applyRowStyles = (ws: XLSX.WorkSheet, rowCount: number, colCount: number, colorFn?: (row: number) => string | null) => {
+    for (let r = 1; r <= rowCount; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const cellRef = XLSX.utils.encode_cell({ r, c });
+        if (!ws[cellRef]) continue;
+        const bgColor = colorFn ? colorFn(r) : (r % 2 === 0 ? 'F2F2F2' : 'FFFFFF');
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: bgColor || (r % 2 === 0 ? 'F2F2F2' : 'FFFFFF') } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: 'D0D0D0' } },
+            bottom: { style: 'thin', color: { rgb: 'D0D0D0' } },
+            left: { style: 'thin', color: { rgb: 'D0D0D0' } },
+            right: { style: 'thin', color: { rgb: 'D0D0D0' } },
+          }
+        };
+      }
+    }
+  };
+
+  // Export to Excel with summary + detailed sheets with colors
   const exportToExcel = () => {
     const dataToExport = filteredAttendance.length > 0 ? filteredAttendance : attendance;
     
@@ -119,9 +158,59 @@ const AdminAttendance = () => {
       return;
     }
 
+    const wb = XLSX.utils.book_new();
+
+    // ===== SHEET 1: Employee Summary =====
+    const empMap: Record<string, { name: string; present: number; halfDay: number; absent: number; totalDays: number }> = {};
+    dataToExport.forEach(record => {
+      const name = record.user_name || 'Unknown';
+      if (!empMap[record.user_id]) {
+        empMap[record.user_id] = { name, present: 0, halfDay: 0, absent: 0, totalDays: 0 };
+      }
+      empMap[record.user_id].totalDays++;
+      if (record.half_day) {
+        empMap[record.user_id].halfDay++;
+      } else if (record.status === 'present') {
+        empMap[record.user_id].present++;
+      } else {
+        empMap[record.user_id].absent++;
+      }
+    });
+
+    const summaryRows = Object.values(empMap).map(e => {
+      const effectivePresent = e.present + (e.halfDay * 0.5);
+      const pct = e.totalDays > 0 ? Math.round((effectivePresent / e.totalDays) * 100) : 0;
+      return {
+        'Employee Name': e.name,
+        'Total Days': e.totalDays,
+        'Present Days': e.present,
+        'Half Days': e.halfDay,
+        'Absent Days': e.absent,
+        'Effective Present': effectivePresent,
+        'Attendance %': `${pct}%`,
+      };
+    });
+
+    const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
+    summarySheet['!cols'] = [
+      { wch: 25 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 13 }, { wch: 16 }, { wch: 14 },
+    ];
+    applyHeaderStyle(summarySheet, 7, '2E86C1');
+    applyRowStyles(summarySheet, summaryRows.length, 7, (row) => {
+      // Color the attendance % column based on value
+      const pctStr = summaryRows[row - 1]?.['Attendance %'] || '0%';
+      const pct = parseInt(pctStr);
+      if (pct >= 80) return 'D5F5E3'; // green
+      if (pct >= 60) return 'FEF9E7'; // yellow
+      return 'FADBD8'; // red
+    });
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Employee Summary');
+
+    // ===== SHEET 2: All Records =====
     const mapRecord = (record: Attendance) => ({
       'Employee Name': record.user_name || 'Unknown',
       'Date': record.date,
+      'Day': new Date(record.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
       'Status': record.half_day ? 'Half Day' : (record.status === 'present' ? 'Present' : 'Absent'),
       'Work Location': getLocationDisplayName(record.work_location),
       'Marked At': new Date(record.marked_at).toLocaleTimeString(),
@@ -129,38 +218,49 @@ const AdminAttendance = () => {
       'Location Verified': record.location_verified ? 'Yes' : 'No'
     });
 
+    const allData = dataToExport.map(mapRecord);
     const colWidths = [
-      { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 12 }, { wch: 40 }, { wch: 15 },
+      { wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 40 }, { wch: 16 },
     ];
-
-    const wb = XLSX.utils.book_new();
-
-    // All records sheet
-    const allSheet = XLSX.utils.json_to_sheet(dataToExport.map(mapRecord));
+    const allSheet = XLSX.utils.json_to_sheet(allData);
     allSheet['!cols'] = colWidths;
+    applyHeaderStyle(allSheet, 8, '1A5276');
+    applyRowStyles(allSheet, allData.length, 8, (row) => {
+      const status = allData[row - 1]?.['Status'];
+      if (status === 'Present') return 'D5F5E3';
+      if (status === 'Half Day') return 'FEF9E7';
+      if (status === 'Absent') return 'FADBD8';
+      return null;
+    });
     XLSX.utils.book_append_sheet(wb, allSheet, 'All Records');
 
-    // Present sheet
-    const presentRecords = dataToExport.filter(a => a.status === 'present' && !a.half_day);
+    // ===== SHEET 3: Present =====
+    const presentRecords = dataToExport.filter(a => a.status === 'present' && !a.half_day).map(mapRecord);
     if (presentRecords.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(presentRecords.map(mapRecord));
+      const ws = XLSX.utils.json_to_sheet(presentRecords);
       ws['!cols'] = colWidths;
+      applyHeaderStyle(ws, 8, '1E8449');
+      applyRowStyles(ws, presentRecords.length, 8);
       XLSX.utils.book_append_sheet(wb, ws, 'Present');
     }
 
-    // Half Day sheet
-    const halfDayRecords = dataToExport.filter(a => a.half_day === true);
+    // ===== SHEET 4: Half Day =====
+    const halfDayRecords = dataToExport.filter(a => a.half_day === true).map(mapRecord);
     if (halfDayRecords.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(halfDayRecords.map(mapRecord));
+      const ws = XLSX.utils.json_to_sheet(halfDayRecords);
       ws['!cols'] = colWidths;
+      applyHeaderStyle(ws, 8, 'D4AC0D');
+      applyRowStyles(ws, halfDayRecords.length, 8);
       XLSX.utils.book_append_sheet(wb, ws, 'Half Day');
     }
 
-    // Absent sheet
-    const absentRecords = dataToExport.filter(a => a.status === 'absent');
+    // ===== SHEET 5: Absent =====
+    const absentRecords = dataToExport.filter(a => a.status === 'absent').map(mapRecord);
     if (absentRecords.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(absentRecords.map(mapRecord));
+      const ws = XLSX.utils.json_to_sheet(absentRecords);
       ws['!cols'] = colWidths;
+      applyHeaderStyle(ws, 8, 'C0392B');
+      applyRowStyles(ws, absentRecords.length, 8);
       XLSX.utils.book_append_sheet(wb, ws, 'Absent');
     }
 
@@ -168,7 +268,7 @@ const AdminAttendance = () => {
     const statusLabel = statusFilter !== 'all' ? `_${statusFilter}` : '';
     XLSX.writeFile(wb, `attendance_report_${periodLabel}${statusLabel}.xlsx`);
 
-    toast({ title: 'Success', description: 'Attendance report exported successfully' });
+    toast({ title: 'Success', description: 'Attendance report exported with summary & color coding' });
   };
 
   // Generate monthly summary
