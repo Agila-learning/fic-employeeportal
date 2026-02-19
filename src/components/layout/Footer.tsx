@@ -67,6 +67,21 @@ const Footer = () => {
               </div>
             </div>
 
+            {/* FIC Career Portal */}
+            <div className="flex items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/20">
+              <Link2 className="h-4 w-4 text-green-400" />
+              <span className="text-white/80 text-xs sm:text-sm">FIC Career Portal Access</span>
+              <span className="text-green-400">|</span>
+              <a 
+                href="https://ficchatsupport.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-green-400 hover:text-green-300 transition-colors text-xs sm:text-sm font-medium"
+              >
+                🔗 ficchatsupport.vercel.app
+              </a>
+            </div>
+
             {/* FIC Connect App */}
             <div className="flex items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20">
               <Smartphone className="h-4 w-4 text-blue-400" />
