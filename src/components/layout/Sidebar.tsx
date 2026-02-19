@@ -18,7 +18,8 @@ import {
   CalendarClock,
   HardDrive,
   Receipt,
-  FileText
+  FileText,
+  IndianRupee
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -79,6 +80,7 @@ const Sidebar = () => {
     { to: '/admin/leave-requests', icon: CalendarClock, label: 'Leave Requests' },
     { to: '/admin/storage', icon: HardDrive, label: 'Storage' },
     { to: '/admin/invoice', icon: Receipt, label: 'Invoice' },
+    { to: '/admin/expenses', icon: IndianRupee, label: 'Expenses' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -91,6 +93,7 @@ const Sidebar = () => {
     { to: '/employee/attendance', icon: CalendarCheck, label: 'Attendance' },
     { to: '/employee/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/employee/leave', icon: CalendarClock, label: 'Leave Request' },
+    { to: '/employee/expenses', icon: IndianRupee, label: 'Expenses' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 

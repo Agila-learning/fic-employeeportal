@@ -190,6 +190,69 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_credits: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_date: string
+          description: string | null
+          given_by: string
+          given_by_role: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_date?: string
+          description?: string | null
+          given_by: string
+          given_by_role?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_date?: string
+          description?: string | null
+          given_by?: string
+          given_by_role?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string
+          expense_date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          description: string
+          expense_date?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string
+          expense_date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       holidays: {
         Row: {
           created_at: string
