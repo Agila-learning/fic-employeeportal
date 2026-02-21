@@ -61,6 +61,10 @@ const AdminAttendance = () => {
   const today = new Date().toISOString().split('T')[0];
 
   const filteredAttendance = attendance.filter(a => {
+    // Exclude admin users from attendance display
+    const emp = employees.find(e => e.user_id === a.user_id);
+    if (emp && emp.role === 'admin') return false;
+
     const matchesSearch = a.user_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = !dateFilter || a.date === dateFilter;
     const matchesMonth = !monthFilter || a.date.startsWith(monthFilter);
@@ -110,7 +114,10 @@ const AdminAttendance = () => {
     );
   };
 
-  const todayRecords = attendance.filter(a => a.date === today);
+  const todayRecords = attendance.filter(a => {
+    const emp = employees.find(e => e.user_id === a.user_id);
+    return a.date === today && (!emp || emp.role !== 'admin');
+  });
   const presentToday = todayRecords.filter(a => a.status === 'present' && !a.half_day).length;
   const halfDayToday = todayRecords.filter(a => a.half_day === true).length;
   const absentToday = todayRecords.filter(a => a.status === 'absent').length;
@@ -377,8 +384,12 @@ const AdminAttendance = () => {
   // Generate monthly summary
   const getMonthlyStats = () => {
     const month = monthFilter || new Date().toISOString().slice(0, 7);
-    const monthRecords = attendance.filter(a => a.date.startsWith(month));
-    
+    const monthRecords = attendance.filter(a => {
+      if (!a.date.startsWith(month)) return false;
+      // Exclude admin users from monthly summary
+      const emp = employees.find(e => e.user_id === a.user_id);
+      return emp && emp.role !== 'admin';
+    });
     const employeeStats: { [key: string]: { name: string; present: number; halfDay: number; absent: number } } = {};
     
     monthRecords.forEach(record => {
