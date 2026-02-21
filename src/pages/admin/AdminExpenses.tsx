@@ -272,6 +272,7 @@ const AdminExpenses = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">S.No</TableHead>
                       <TableHead>Employee</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Category</TableHead>
@@ -283,9 +284,10 @@ const AdminExpenses = () => {
                   </TableHeader>
                   <TableBody>
                     {pendingExpenses.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No pending approvals 🎉</TableCell></TableRow>
-                    ) : pendingExpenses.map(e => (
+                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No pending approvals 🎉</TableCell></TableRow>
+                    ) : pendingExpenses.map((e, index) => (
                       <TableRow key={e.id}>
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-medium">{e.user_name}</TableCell>
                         <TableCell>{format(parseISO(e.expense_date), 'dd MMM yyyy')}</TableCell>
                         <TableCell><span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium dark:bg-amber-900/30 dark:text-amber-400">{e.category}</span></TableCell>
@@ -324,6 +326,7 @@ const AdminExpenses = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">S.No</TableHead>
                       <TableHead>Employee</TableHead>
                       <TableHead className="text-right">Spent (₹)</TableHead>
                       <TableHead className="text-right">Credited (₹)</TableHead>
@@ -332,9 +335,10 @@ const AdminExpenses = () => {
                   </TableHeader>
                   <TableBody>
                     {employeeSummary.length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No expense data found</TableCell></TableRow>
-                    ) : employeeSummary.map(([id, v]) => (
+                      <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No expense data found</TableCell></TableRow>
+                    ) : employeeSummary.map(([id, v], index) => (
                       <TableRow key={id}>
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-medium">{v.name}</TableCell>
                         <TableCell className="text-right text-destructive font-semibold">₹{v.spent.toLocaleString()}</TableCell>
                         <TableCell className="text-right text-emerald-600 font-semibold">₹{v.credited.toLocaleString()}</TableCell>
@@ -355,6 +359,7 @@ const AdminExpenses = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">S.No</TableHead>
                       <TableHead>Employee</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Category</TableHead>
@@ -366,11 +371,12 @@ const AdminExpenses = () => {
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                     ) : filteredExpenses.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No expenses found</TableCell></TableRow>
-                    ) : filteredExpenses.map(e => (
+                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No expenses found</TableCell></TableRow>
+                    ) : filteredExpenses.map((e, index) => (
                       <TableRow key={e.id}>
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-medium">{e.user_name}</TableCell>
                         <TableCell>{format(parseISO(e.expense_date), 'dd MMM yyyy')}</TableCell>
                         <TableCell><span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium dark:bg-amber-900/30 dark:text-amber-400">{e.category}</span></TableCell>
@@ -400,6 +406,7 @@ const AdminExpenses = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">S.No</TableHead>
                       <TableHead>Employee</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Given By</TableHead>
@@ -410,9 +417,10 @@ const AdminExpenses = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredCredits.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No credits found</TableCell></TableRow>
-                    ) : filteredCredits.map(c => (
+                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No credits found</TableCell></TableRow>
+                    ) : filteredCredits.map((c, index) => (
                       <TableRow key={c.id}>
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-medium">{c.user_name}</TableCell>
                         <TableCell>{format(parseISO(c.credit_date), 'dd MMM yyyy')}</TableCell>
                         <TableCell>{c.given_by}</TableCell>

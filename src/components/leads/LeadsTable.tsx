@@ -393,6 +393,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh, defaultPaymentStag
         <Table>
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-muted/50 to-muted/30 hover:bg-muted/50">
+              <TableHead className="font-semibold w-12">S.No</TableHead>
               <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Candidate ID</TableHead>
               <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Name</TableHead>
               <TableHead className="font-semibold hover:text-primary transition-colors cursor-default">Contact</TableHead>
@@ -409,7 +410,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh, defaultPaymentStag
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showAssignee ? 9 : 8} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={showAssignee ? 10 : 9} className="h-32 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <Search className="h-8 w-8 opacity-50" />
                     <p>No leads found</p>
@@ -423,6 +424,7 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh, defaultPaymentStag
                   className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent transition-all duration-300 cursor-pointer"
                   style={{ animationDelay: `${index * 30}ms` }}
                 >
+                  <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                   <TableCell className="font-mono font-medium text-primary group-hover:text-primary/80 transition-colors">{lead.candidate_id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">

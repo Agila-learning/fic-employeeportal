@@ -254,6 +254,7 @@ const EmployeeExpenses = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">S.No</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Description</TableHead>
@@ -265,11 +266,12 @@ const EmployeeExpenses = () => {
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                     ) : expenses.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No expenses recorded yet</TableCell></TableRow>
-                    ) : expenses.map(e => (
+                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No expenses recorded yet</TableCell></TableRow>
+                    ) : expenses.map((e, index) => (
                       <TableRow key={e.id}>
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-medium">{format(parseISO(e.expense_date), 'dd MMM yyyy')}</TableCell>
                         <TableCell><span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium dark:bg-amber-900/30 dark:text-amber-400">{e.category}</span></TableCell>
                         <TableCell>{e.description}</TableCell>
@@ -352,6 +354,7 @@ const EmployeeExpenses = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">S.No</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Given By</TableHead>
                       <TableHead>Role</TableHead>
@@ -362,9 +365,10 @@ const EmployeeExpenses = () => {
                   </TableHeader>
                   <TableBody>
                     {credits.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No credits recorded yet</TableCell></TableRow>
-                    ) : credits.map(c => (
+                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No credits recorded yet</TableCell></TableRow>
+                    ) : credits.map((c, index) => (
                       <TableRow key={c.id}>
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-medium">{format(parseISO(c.credit_date), 'dd MMM yyyy')}</TableCell>
                         <TableCell>{c.given_by}</TableCell>
                         <TableCell><span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium capitalize dark:bg-blue-900/30 dark:text-blue-400">{c.given_by_role}</span></TableCell>

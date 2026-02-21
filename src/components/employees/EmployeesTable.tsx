@@ -54,6 +54,7 @@ const EmployeesTable = () => {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
+              <TableHead className="font-semibold w-12">S.No</TableHead>
               <TableHead className="font-semibold">Employee</TableHead>
               <TableHead className="font-semibold">Employee ID</TableHead>
               <TableHead className="font-semibold">Email</TableHead>
@@ -66,9 +67,10 @@ const EmployeesTable = () => {
           </TableHeader>
           <TableBody>
             {filteredEmployees.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">No employees found</TableCell></TableRow>
-            ) : filteredEmployees.map((employee) => (
+              <TableRow><TableCell colSpan={9} className="h-32 text-center text-muted-foreground">No employees found</TableCell></TableRow>
+            ) : filteredEmployees.map((employee, index) => (
               <TableRow key={employee.id} className="hover:bg-muted/30 transition-colors">
+                <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-secondary">
