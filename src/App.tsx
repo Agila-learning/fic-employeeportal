@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEmployees from "./pages/admin/AdminEmployees";
+import AdminEmployeeDetails from "./pages/admin/AdminEmployeeDetails";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminTasks from "./pages/admin/AdminTasks";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
@@ -52,6 +53,7 @@ const App = () => (
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/employees" element={<AdminEmployees />} />
+              <Route path="/admin/employee-details" element={<AdminEmployeeDetails />} />
               <Route path="/admin/leads" element={<AdminLeads />} />
               <Route path="/admin/tasks" element={<AdminTasks />} />
               <Route path="/admin/reports" element={<AdminReports />} />

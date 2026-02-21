@@ -71,7 +71,7 @@ const Sidebar = () => {
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/employees', icon: Users, label: 'Employees' },
-    { to: '#employee-details', icon: Users, label: 'Employee Details', external: 'https://drive.google.com/drive/folders/1-7PHoUruvtXV6JdKgXK8dE-xhfZaTz9l?usp=sharing' },
+    { to: '/admin/employee-details', icon: Users, label: 'Employee Details' },
     { to: '/admin/leads', icon: FileSpreadsheet, label: 'All Leads' },
     { to: '/admin/followups', icon: CalendarClock, label: 'Follow-ups' },
     { to: '/admin/tasks', icon: ClipboardList, label: 'Tasks' },
@@ -162,23 +162,6 @@ const Sidebar = () => {
           <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
             {links.map((link) => {
               const isActive = location.pathname === link.to;
-              const isExternal = 'external' in link && link.external;
-              
-              if (isExternal) {
-                return (
-                  <a
-                    key={link.to}
-                    href={(link as any).external}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 text-amber-100/90 hover:bg-gradient-to-r hover:from-white/10 hover:to-white/5 hover:text-white hover:pl-5"
-                  >
-                    <link.icon className="h-5 w-5 transition-colors text-amber-400" />
-                    <span className="flex-1">{link.label}</span>
-                  </a>
-                );
-              }
-              
               return (
                 <Link
                   key={link.to}
