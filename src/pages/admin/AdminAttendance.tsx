@@ -571,37 +571,39 @@ const AdminAttendance = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead className="text-center">Present</TableHead>
-                    <TableHead className="text-center">Half Day</TableHead>
-                    <TableHead className="text-center">Absent</TableHead>
-                    <TableHead className="text-center">Attendance %</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {monthlyStats.map((stat, index) => {
-                    // Half days count as 0.5 for percentage calculation
-                    const effectivePresent = stat.present + (stat.halfDay * 0.5);
-                    const total = stat.present + stat.halfDay + stat.absent;
-                    const percentage = total > 0 ? Math.round((effectivePresent / total) * 100) : 0;
-                    return (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{stat.name}</TableCell>
-                        <TableCell className="text-center text-success font-semibold">{stat.present}</TableCell>
-                        <TableCell className="text-center text-warning font-semibold">{stat.halfDay}</TableCell>
-                        <TableCell className="text-center text-destructive font-semibold">{stat.absent}</TableCell>
-                        <TableCell className="text-center">
-                          <span className={cn(
-                            'px-2 py-1 rounded-full text-xs font-medium',
-                            percentage >= 80 ? 'bg-success/20 text-success' : 
-                            percentage >= 60 ? 'bg-warning/20 text-warning' : 
-                            'bg-destructive/20 text-destructive'
-                          )}>
-                            {percentage}%
-                          </span>
-                        </TableCell>
-                      </TableRow>
+                    <TableRow>
+                      <TableHead className="w-16">S.No</TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead className="text-center">Present</TableHead>
+                      <TableHead className="text-center">Half Day</TableHead>
+                      <TableHead className="text-center">Absent</TableHead>
+                      <TableHead className="text-center">Attendance %</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {monthlyStats.map((stat, index) => {
+                      // Half days count as 0.5 for percentage calculation
+                      const effectivePresent = stat.present + (stat.halfDay * 0.5);
+                      const total = stat.present + stat.halfDay + stat.absent;
+                      const percentage = total > 0 ? Math.round((effectivePresent / total) * 100) : 0;
+                      return (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                          <TableCell className="font-medium">{stat.name}</TableCell>
+                          <TableCell className="text-center text-success font-semibold">{stat.present}</TableCell>
+                          <TableCell className="text-center text-warning font-semibold">{stat.halfDay}</TableCell>
+                          <TableCell className="text-center text-destructive font-semibold">{stat.absent}</TableCell>
+                          <TableCell className="text-center">
+                            <span className={cn(
+                              'px-2 py-1 rounded-full text-xs font-medium',
+                              percentage >= 80 ? 'bg-success/20 text-success' : 
+                              percentage >= 60 ? 'bg-warning/20 text-warning' : 
+                              'bg-destructive/20 text-destructive'
+                            )}>
+                              {percentage}%
+                            </span>
+                          </TableCell>
+                        </TableRow>
                     );
                   })}
                 </TableBody>
