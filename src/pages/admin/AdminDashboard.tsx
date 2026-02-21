@@ -19,7 +19,8 @@ const AdminDashboard = () => {
   const { leads, refetchLeads } = useLeads();
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
 
-  const activeEmployees = employees.filter(e => e.is_active).length;
+  const activeEmployees = employees.filter(e => e.is_active);
+  const activeEmployeeCount = activeEmployees.length;
   const totalLeads = leads.length;
   const convertedLeads = leads.filter(l => l.status === 'converted').length;
   const successLeads = leads.filter(l => l.status === 'success').length;
@@ -49,7 +50,7 @@ const AdminDashboard = () => {
     count: leads.filter(l => l.status === status.value).length
   })).sort((a, b) => b.count - a.count);
 
-  const employeePerformance = employees.map(emp => ({
+  const employeePerformance = activeEmployees.map(emp => ({
     ...emp,
     successCount: leads.filter(l => l.assigned_to === emp.user_id && l.status === 'success').length,
     converted: leads.filter(l => l.assigned_to === emp.user_id && (l.status === 'converted' || l.status === 'success')).length,
@@ -84,7 +85,7 @@ const AdminDashboard = () => {
           />
           <StatsCard 
             title="Active Employees" 
-            value={activeEmployees} 
+            value={activeEmployeeCount} 
             icon={UserCheck} 
             iconClassName="bg-gradient-to-br from-amber-500 to-amber-600"
             delay={100}

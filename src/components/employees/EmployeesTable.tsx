@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import EmployeeFormDialog from './EmployeeFormDialog';
 import CreateEmployeeDialog from './CreateEmployeeDialog';
-import { MoreHorizontal, Pencil, UserX, UserCheck, Search, UserPlus } from 'lucide-react';
+import { MoreHorizontal, Pencil, UserX, UserCheck, Search, UserPlus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 const EmployeesTable = () => {
-  const { employees, toggleEmployeeStatus, isLoading, refetchEmployees } = useEmployees();
+  const { employees, toggleEmployeeStatus, deleteEmployee, isLoading, refetchEmployees } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -25,6 +25,12 @@ const EmployeesTable = () => {
   const handleToggleStatus = async (emp: Employee) => {
     const success = await toggleEmployeeStatus(emp.user_id, !emp.is_active);
     if (success) toast.success(`${emp.name} has been ${emp.is_active ? 'deactivated' : 'activated'}`);
+  };
+
+  const handleDelete = async (emp: Employee) => {
+    if (!confirm(`Are you sure you want to permanently delete ${emp.name}?`)) return;
+    const success = await deleteEmployee(emp.user_id);
+    if (success) toast.success(`${emp.name} has been deleted`);
   };
 
   if (isLoading) {
@@ -85,6 +91,11 @@ const EmployeesTable = () => {
                       <DropdownMenuItem onClick={() => handleToggleStatus(employee)}>
                         {employee.is_active ? <><UserX className="mr-2 h-4 w-4" />Deactivate</> : <><UserCheck className="mr-2 h-4 w-4" />Activate</>}
                       </DropdownMenuItem>
+                      {!employee.is_active && (
+                        <DropdownMenuItem onClick={() => handleDelete(employee)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
