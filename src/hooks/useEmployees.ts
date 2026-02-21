@@ -130,13 +130,21 @@ export const useEmployees = () => {
 
   const deleteEmployee = async (userId: string) => {
     try {
-      // Note: This will cascade delete the profile and role due to FK constraints
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
-      // If admin API fails, just deactivate
-      if (error) {
-        return toggleEmployeeStatus(userId, false);
-      }
+      // Delete user role first
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (roleError) throw roleError;
+
+      // Delete profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (profileError) throw profileError;
 
       setEmployees((prev) => prev.filter((e) => e.user_id !== userId));
       return true;
@@ -144,8 +152,8 @@ export const useEmployees = () => {
       if (import.meta.env.DEV) {
         console.error('[DEV] Error deleting employee:', error);
       }
-      toast.error('Failed to delete employee. Deactivating instead.');
-      return toggleEmployeeStatus(userId, false);
+      toast.error(error.message || 'Failed to delete employee');
+      return false;
     }
   };
 
