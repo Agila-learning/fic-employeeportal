@@ -71,7 +71,7 @@ const Sidebar = () => {
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/employees', icon: Users, label: 'Employees' },
-    { to: '/admin/employee-details', icon: Users, label: 'Employee Details' },
+    
     { to: '/admin/leads', icon: FileSpreadsheet, label: 'All Leads' },
     { to: '/admin/followups', icon: CalendarClock, label: 'Follow-ups' },
     { to: '/admin/tasks', icon: ClipboardList, label: 'Tasks' },

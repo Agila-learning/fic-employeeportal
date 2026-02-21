@@ -1,4 +1,4 @@
-import { Building2, Mail, Globe, Link2, LayoutDashboard, FileSpreadsheet, UserPlus, Smartphone } from 'lucide-react';
+import { Building2, Mail, Globe, Link2, LayoutDashboard, FileSpreadsheet, UserPlus, Smartphone, FolderOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 
@@ -98,7 +98,7 @@ const Footer = () => {
             </div>
 
             {/* Candidate Screening Portal */}
-            <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 py-3 px-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/20">
+            <div className="flex items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/20">
               <Link2 className="h-4 w-4 text-amber-400" />
               <span className="text-white/80 text-xs sm:text-sm">Candidate Screening & Tracking Portal</span>
               <span className="text-amber-400">|</span>
@@ -109,6 +109,21 @@ const Footer = () => {
                 className="text-amber-400 hover:text-amber-300 transition-colors text-xs sm:text-sm font-medium"
               >
                 🔗 https://job-path-guard.vercel.app/
+              </a>
+            </div>
+
+            {/* Employee Details Drive */}
+            <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-500/20">
+              <FolderOpen className="h-4 w-4 text-purple-400" />
+              <span className="text-white/80 text-xs sm:text-sm">Employee Details Drive</span>
+              <span className="text-purple-400">|</span>
+              <a 
+                href="https://drive.google.com/drive/folders/1-7PHoUruvtXV6JdKgXK8dE-xhfZaTz9l?usp=sharing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:text-purple-300 transition-colors text-xs sm:text-sm font-medium"
+              >
+                🔗 Open Drive
               </a>
             </div>
 
