@@ -18,7 +18,7 @@ import * as XLSX from 'xlsx-js-style';
 const CATEGORIES = [
   'Tea/Coffee', 'Snacks', 'Pooja Materials', 'Office Use Things',
   'Sanitary Products', 'Food', 'Transport', 'Travel',
-  'Office Supplies', 'Others'
+  'Office Supplies', 'Courier Charges', 'Petrol', 'Others'
 ];
 
 const EmployeeExpenses = () => {
