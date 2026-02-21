@@ -44,11 +44,12 @@ interface LeadsTableProps {
   leads: Lead[];
   showAssignee?: boolean;
   onRefresh?: () => void;
+  defaultPaymentStageFilter?: string;
 }
 
 type DateFilterType = 'all' | 'today' | 'this_week' | 'this_month';
 
-const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps) => {
+const LeadsTable = ({ leads, showAssignee = false, onRefresh, defaultPaymentStageFilter }: LeadsTableProps) => {
   const { employees } = useEmployees();
   const { deleteLead } = useLeads();
   const [searchTerm, setSearchTerm] = useState('');
@@ -123,6 +124,9 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
       // Domain filter
       const matchesDomain = domainFilter === 'all' || lead.interested_domain === domainFilter;
       
+      // Payment stage filter
+      const matchesPaymentStage = !defaultPaymentStageFilter || lead.payment_stage === defaultPaymentStageFilter;
+
       // Specific date filter
       let matchesDateFilter = true;
       if (dateFilter) {
@@ -133,9 +137,9 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh }: LeadsTableProps)
       // Employee filter (for admin)
       const matchesEmployee = employeeFilter === 'all' || lead.created_by === employeeFilter;
       
-      return matchesSearch && matchesStatus && matchesSource && matchesSuccessDate && matchesRejectedDate && matchesDomain && matchesDateFilter && matchesEmployee;
+      return matchesSearch && matchesStatus && matchesSource && matchesSuccessDate && matchesRejectedDate && matchesDomain && matchesDateFilter && matchesEmployee && matchesPaymentStage;
     });
-  }, [leads, searchTerm, statusFilter, sourceFilter, successDateFilter, rejectedDateFilter, domainFilter, dateFilter, employeeFilter]);
+  }, [leads, searchTerm, statusFilter, sourceFilter, successDateFilter, rejectedDateFilter, domainFilter, dateFilter, employeeFilter, defaultPaymentStageFilter]);
 
   const handleDelete = async (id: string) => {
     const success = await deleteLead(id);

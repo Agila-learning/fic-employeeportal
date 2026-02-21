@@ -115,7 +115,8 @@ const AdminDashboard = () => {
         {/* Payment Stage Stats */}
         {(registrationDone > 0 || initialPaymentDone > 0 || fullPaymentDone > 0) && (
           <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-3 animate-fade-in">
-            <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20">
+          <Link to="/admin/leads?payment_stage=registration_done">
+            <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/10 shrink-0">
@@ -128,7 +129,9 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20">
+          </Link>
+          <Link to="/admin/leads?payment_stage=initial_payment_done">
+            <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="p-1.5 sm:p-2 rounded-lg bg-amber-500/10 shrink-0">
@@ -141,7 +144,9 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 col-span-2 sm:col-span-1">
+          </Link>
+          <Link to="/admin/leads?payment_stage=full_payment_done">
+            <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 col-span-2 sm:col-span-1 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="p-1.5 sm:p-2 rounded-lg bg-green-500/10 shrink-0">
@@ -154,6 +159,7 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </Link>
           </div>
         )}
 
