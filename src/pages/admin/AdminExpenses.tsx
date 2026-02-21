@@ -16,6 +16,9 @@ import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isW
 import { CalendarIcon, Download, TrendingDown, TrendingUp, Wallet, Users, CheckCircle, XCircle, ExternalLink, Clock, Plus, Trash2, IndianRupee, Upload, FileImage, UserCircle, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx-js-style';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+
+const PIE_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4', '#e11d48'];
 
 const CATEGORIES = [
   'Tea/Coffee', 'Snacks', 'Pooja Materials', 'Office Use Things',
@@ -322,6 +325,40 @@ const AdminMyExpenses = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Category Pie Chart */}
+      {categoryBreakdown.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" /> Category-wise Spending Chart ({timeLabel})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryBreakdown.map(([cat, data]) => ({ name: cat, value: data.amount }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    outerRadius={100}
+                    dataKey="value"
+                  >
+                    {categoryBreakdown.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Category-wise & Paid-to breakdown side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
