@@ -181,19 +181,26 @@ const EmployeeReports = () => {
     setCandidateEntries(updated);
   };
 
+  const getFilledCandidateEntries = (): CandidateEntry[] => {
+    return candidateEntries.filter(entry => 
+      entry.candidate_name.trim() || entry.mobile_number.trim() || entry.domain
+    );
+  };
+
   const validateCandidateEntries = (): boolean => {
-    for (let i = 0; i < candidateEntries.length; i++) {
-      const entry = candidateEntries[i];
+    const filledEntries = getFilledCandidateEntries();
+    for (let i = 0; i < filledEntries.length; i++) {
+      const entry = filledEntries[i];
       if (!entry.candidate_name.trim()) {
-        toast.error(`Candidate Name is required for entry ${i + 1}`);
+        toast.error(`Candidate Name is required for partially filled entry`);
         return false;
       }
       if (!entry.mobile_number.trim()) {
-        toast.error(`Mobile Number is required for entry ${i + 1}`);
+        toast.error(`Mobile Number is required for partially filled entry`);
         return false;
       }
       if (!entry.domain) {
-        toast.error(`Domain is required for entry ${i + 1}`);
+        toast.error(`Domain is required for partially filled entry`);
         return false;
       }
     }
@@ -208,8 +215,12 @@ const EmployeeReports = () => {
       return;
     }
     
-    if (!morningDescription.trim() && !afternoonDescription.trim()) {
-      toast.error('Please add at least one description');
+    if (!morningDescription.trim()) {
+      toast.error('Morning report is mandatory');
+      return;
+    }
+    if (!afternoonDescription.trim()) {
+      toast.error('Afternoon report is mandatory');
       return;
     }
 
@@ -258,24 +269,27 @@ const EmployeeReports = () => {
           .eq('user_id', user.id)
           .eq('report_date', reportDate);
 
-        // Insert new entries
-        const entryData = candidateEntries.map(entry => ({
-          report_id: reportId,
-          user_id: user.id,
-          report_date: reportDate,
-          candidate_name: entry.candidate_name.trim(),
-          mobile_number: entry.mobile_number.trim(),
-          domain: entry.domain,
-          agent_name: entry.agent_name.trim() || null,
-          location: entry.location.trim() || null,
-          comments: entry.comments.trim() || null,
-        }));
+        // Only insert filled entries
+        const filledEntries = getFilledCandidateEntries();
+        if (filledEntries.length > 0) {
+          const entryData = filledEntries.map(entry => ({
+            report_id: reportId,
+            user_id: user.id,
+            report_date: reportDate,
+            candidate_name: entry.candidate_name.trim(),
+            mobile_number: entry.mobile_number.trim(),
+            domain: entry.domain,
+            agent_name: entry.agent_name.trim() || null,
+            location: entry.location.trim() || null,
+            comments: entry.comments.trim() || null,
+          }));
 
-        const { error: entryError } = await supabase
-          .from('bda_candidate_entries')
-          .insert(entryData);
+          const { error: entryError } = await supabase
+            .from('bda_candidate_entries')
+            .insert(entryData);
 
-        if (entryError) throw entryError;
+          if (entryError) throw entryError;
+        }
       }
 
       toast.success(existingReportId ? 'Report updated successfully' : 'Report submitted successfully');
@@ -382,7 +396,7 @@ const EmployeeReports = () => {
                     <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                       <Briefcase className="h-4 w-4 text-primary" />
                       <span>{department === 'BDA' ? 'Candidate Details' : 'HR Screening Details'}</span>
-                      <Badge variant="secondary">{candidateEntries.length} entries</Badge>
+                      <Badge variant="outline" className="text-muted-foreground">Optional</Badge>
                     </CardTitle>
                     {!isReportLocked && (
                       <Button 
@@ -413,11 +427,11 @@ const EmployeeReports = () => {
                         </Button>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Candidate Name - Required */}
+                        {/* Candidate Name */}
                         <div className="space-y-2">
                           <Label className="flex items-center gap-2">
                             <User className="h-3 w-3" />
-                            Candidate Name <span className="text-destructive">*</span>
+                            Candidate Name
                           </Label>
                           <Input
                             value={entry.candidate_name}
@@ -427,11 +441,11 @@ const EmployeeReports = () => {
                           />
                         </div>
 
-                        {/* Mobile Number - Required */}
+                        {/* Mobile Number */}
                         <div className="space-y-2">
                           <Label className="flex items-center gap-2">
                             <Phone className="h-3 w-3" />
-                            Mobile Number <span className="text-destructive">*</span>
+                            Mobile Number
                           </Label>
                           <Input
                             value={entry.mobile_number}
@@ -441,11 +455,11 @@ const EmployeeReports = () => {
                           />
                         </div>
 
-                        {/* Domain - Required */}
+                        {/* Domain */}
                         <div className="space-y-2">
                           <Label className="flex items-center gap-2">
                             <Briefcase className="h-3 w-3" />
-                            Domain <span className="text-destructive">*</span>
+                            Domain
                           </Label>
                           <Select 
                             value={entry.domain} 
@@ -534,7 +548,7 @@ const EmployeeReports = () => {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Sun className="h-4 w-4 text-warning" />
-                Morning Report
+                Morning Report <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 value={morningDescription}
@@ -549,7 +563,7 @@ const EmployeeReports = () => {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Moon className="h-4 w-4 text-primary" />
-                Afternoon Report
+                Afternoon Report <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 value={afternoonDescription}
