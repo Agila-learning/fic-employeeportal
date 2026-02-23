@@ -97,7 +97,7 @@ const AdminMyExpenses = () => {
   const [credDate, setCredDate] = useState<Date>(new Date());
   const [credAmount, setCredAmount] = useState('');
   const [credGivenBy, setCredGivenBy] = useState('');
-  const [credRole, setCredRole] = useState('manager');
+  const [credRole, setCredRole] = useState('');
   const [credDesc, setCredDesc] = useState('');
 
   const fetchData = async () => {
@@ -157,7 +157,7 @@ const AdminMyExpenses = () => {
     });
     if (error) toast({ title: 'Error adding credit', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Credit added' }); fetchData(); }
-    setCredAmount(''); setCredGivenBy(''); setCredDesc('');
+    setCredAmount(''); setCredGivenBy(''); setCredRole(''); setCredDesc('');
   };
 
   const handleDeleteCredit = async (id: string) => {
@@ -552,14 +552,8 @@ const AdminMyExpenses = () => {
                   <Input placeholder="Name" value={credGivenBy} onChange={e => setCredGivenBy(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Role</label>
-                  <Select value={credRole} onValueChange={setCredRole}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ceo">CEO</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm font-medium">Role / Designation</label>
+                  <Input placeholder="e.g. CEO, Manager, Director" value={credRole} onChange={e => setCredRole(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Description</label>
