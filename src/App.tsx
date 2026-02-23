@@ -23,6 +23,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminLeaveRequestsPage from "./pages/admin/AdminLeaveRequests";
 import AdminExpenses from "./pages/admin/AdminExpenses";
 import AdminPayroll from "./pages/admin/AdminPayroll";
+import AdminOfferLetter from "./pages/admin/AdminOfferLetter";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeLeads from "./pages/employee/EmployeeLeads";
 import EmployeeFollowups from "./pages/employee/EmployeeFollowups";
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/admin/leave-requests" element={<AdminLeaveRequestsPage />} />
               <Route path="/admin/expenses" element={<AdminExpenses />} />
               <Route path="/admin/payroll" element={<AdminPayroll />} />
+              <Route path="/admin/offer-letter" element={<AdminOfferLetter />} />
               
               {/* Employee Routes */}
               <Route path="/employee" element={<EmployeeDashboard />} />

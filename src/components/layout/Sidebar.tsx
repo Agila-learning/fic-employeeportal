@@ -19,7 +19,8 @@ import {
   HardDrive,
   Receipt,
   FileText,
-  IndianRupee
+  IndianRupee,
+  FileSignature
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,7 @@ const Sidebar = () => {
     { to: '/admin/invoice', icon: Receipt, label: 'Invoice' },
     { to: '/admin/expenses', icon: IndianRupee, label: 'Expenses' },
     { to: '/admin/payroll', icon: FileText, label: 'Payroll' },
+    { to: '/admin/offer-letter', icon: FileSignature, label: 'Offer Letter' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
