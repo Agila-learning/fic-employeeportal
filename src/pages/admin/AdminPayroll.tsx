@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileText, Download, Eye, Trash2 } from 'lucide-react';
+import { FileText, Download, Eye, Trash2, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PayslipTemplate from '@/components/payroll/PayslipTemplate';
 import { format } from 'date-fns';
@@ -30,6 +30,7 @@ const AdminPayroll = () => {
   const [payslips, setPayslips] = useState<any[]>([]);
   const [viewPayslip, setViewPayslip] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
 
   // Salary form fields
   const [form, setForm] = useState({
@@ -197,6 +198,104 @@ const AdminPayroll = () => {
       toast.error(err.message || 'Failed to generate payslip');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleBulkGenerate = async () => {
+    if (!user) return;
+    setIsBulkGenerating(true);
+    let generated = 0;
+    let skipped = 0;
+
+    try {
+      for (const emp of activeEmployees) {
+        // Get latest payslip for this employee
+        const { data } = await supabase
+          .from('payslips')
+          .select('*')
+          .eq('user_id', emp.user_id)
+          .order('year', { ascending: false })
+          .order('month', { ascending: false })
+          .limit(1);
+
+        if (!data || data.length === 0) {
+          skipped++;
+          continue;
+        }
+
+        const ps = data[0];
+
+        // Check if payslip already exists for this month/year
+        const { data: existing } = await supabase
+          .from('payslips')
+          .select('id')
+          .eq('user_id', emp.user_id)
+          .eq('month', parseInt(month))
+          .eq('year', parseInt(year))
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        const gross = (ps.basic_salary || 0) + (ps.hra || 0) + (ps.conveyance_allowance || 0) +
+          (ps.medical_allowance || 0) + (ps.special_allowance || 0) + (ps.other_earnings || 0);
+        const deductions = (ps.pf_employee || 0) + (ps.esi_employee || 0) +
+          (ps.professional_tax || 0) + (ps.tds || 0) + (ps.other_deductions || 0);
+
+        const { error } = await supabase.from('payslips').insert({
+          user_id: emp.user_id,
+          employee_name: emp.name,
+          employee_id: emp.employee_id || '',
+          department: ps.department,
+          designation: ps.designation,
+          month: parseInt(month),
+          year: parseInt(year),
+          basic_salary: ps.basic_salary,
+          hra: ps.hra,
+          conveyance_allowance: ps.conveyance_allowance,
+          medical_allowance: ps.medical_allowance,
+          special_allowance: ps.special_allowance,
+          other_earnings: ps.other_earnings,
+          pf_employee: ps.pf_employee,
+          pf_employer: ps.pf_employer,
+          esi_employee: ps.esi_employee,
+          esi_employer: ps.esi_employer,
+          professional_tax: ps.professional_tax,
+          tds: ps.tds,
+          other_deductions: ps.other_deductions,
+          gross_salary: gross,
+          total_deductions: deductions,
+          net_salary: gross - deductions,
+          ctc: ps.ctc,
+          bank_name: ps.bank_name,
+          bank_account_number: ps.bank_account_number,
+          pan_number: ps.pan_number,
+          uan_number: ps.uan_number,
+          total_working_days: parseInt(form.totalWorkingDays) || 30,
+          days_worked: parseInt(form.daysWorked) || 30,
+          leave_days: parseInt(form.leaveDays) || 0,
+          generated_by: user.id,
+        });
+
+        if (!error) generated++;
+      }
+
+      if (generated > 0) {
+        toast.success(`Bulk generated ${generated} payslip(s) for ${MONTHS[parseInt(month) - 1]} ${year}`);
+        fetchPayslips();
+      }
+      if (skipped > 0) {
+        toast.info(`${skipped} employee(s) skipped (no previous data or already exists)`);
+      }
+      if (generated === 0 && skipped === 0) {
+        toast.warning('No active employees found');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Bulk generation failed');
+    } finally {
+      setIsBulkGenerating(false);
     }
   };
 
@@ -373,10 +472,16 @@ const AdminPayroll = () => {
                 <p className="text-lg font-bold text-foreground">Net Salary: ₹{netSalary.toLocaleString('en-IN')}</p>
                 <p className="text-xs text-muted-foreground">Gross: ₹{grossSalary.toLocaleString('en-IN')} - Deductions: ₹{totalDeductions.toLocaleString('en-IN')}</p>
               </div>
-              <Button onClick={handleGenerate} disabled={isSubmitting} className="gradient-primary">
-                <FileText className="h-4 w-4 mr-2" />
-                {isSubmitting ? 'Generating...' : 'Generate Payslip'}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleGenerate} disabled={isSubmitting} className="gradient-primary">
+                  <FileText className="h-4 w-4 mr-2" />
+                  {isSubmitting ? 'Generating...' : 'Generate Payslip'}
+                </Button>
+                <Button onClick={handleBulkGenerate} disabled={isBulkGenerating} variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  {isBulkGenerating ? 'Generating All...' : 'Bulk Generate All'}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
