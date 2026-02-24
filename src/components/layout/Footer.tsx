@@ -1,8 +1,12 @@
 import { Building2, Mail, Globe, Link2, LayoutDashboard, FileSpreadsheet, UserPlus, Smartphone, FolderOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Footer = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   return (
     <footer className="md:ml-64 p-4 sm:p-6">
       <Card className="border-0 shadow-xl bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white overflow-hidden">
@@ -68,10 +72,12 @@ const Footer = () => {
             </div>
 
             {/* FIC Career Portal */}
-            <div className="flex items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/20">
-              <Link2 className="h-4 w-4 text-green-400" />
-              <span className="text-white/80 text-xs sm:text-sm">FIC Career Portal Access</span>
-              <span className="text-green-400">|</span>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/20">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-green-400" />
+                <span className="text-white/80 text-xs sm:text-sm">FIC Career Portal Access</span>
+                <span className="text-green-400 hidden sm:inline">|</span>
+              </div>
               <a 
                 href="https://ficchatsupport.vercel.app/" 
                 target="_blank" 
@@ -83,10 +89,12 @@ const Footer = () => {
             </div>
 
             {/* FIC Connect App */}
-            <div className="flex items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20">
-              <Smartphone className="h-4 w-4 text-blue-400" />
-              <span className="text-white/80 text-xs sm:text-sm">Explore FIC Connect App</span>
-              <span className="text-blue-400">|</span>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-blue-400" />
+                <span className="text-white/80 text-xs sm:text-sm">Explore FIC Connect App</span>
+                <span className="text-blue-400 hidden sm:inline">|</span>
+              </div>
               <a 
                 href="https://connectapp.forgeindiaconnect.com/" 
                 target="_blank" 
@@ -98,34 +106,40 @@ const Footer = () => {
             </div>
 
             {/* Candidate Screening Portal */}
-            <div className="flex items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/20">
-              <Link2 className="h-4 w-4 text-amber-400" />
-              <span className="text-white/80 text-xs sm:text-sm">Candidate Screening & Tracking Portal</span>
-              <span className="text-amber-400">|</span>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4 py-3 px-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/20">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-amber-400" />
+                <span className="text-white/80 text-xs sm:text-sm">Candidate Screening & Tracking Portal</span>
+                <span className="text-amber-400 hidden sm:inline">|</span>
+              </div>
               <a 
                 href="https://job-path-guard.vercel.app/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-amber-400 hover:text-amber-300 transition-colors text-xs sm:text-sm font-medium"
               >
-                🔗 https://job-path-guard.vercel.app/
+                🔗 job-path-guard.vercel.app
               </a>
             </div>
 
-            {/* Employee Details Drive */}
-            <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-500/20">
-              <FolderOpen className="h-4 w-4 text-purple-400" />
-              <span className="text-white/80 text-xs sm:text-sm">Employee Details Drive</span>
-              <span className="text-purple-400">|</span>
-              <a 
-                href="https://drive.google.com/drive/folders/1-7PHoUruvtXV6JdKgXK8dE-xhfZaTz9l?usp=sharing" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-purple-400 hover:text-purple-300 transition-colors text-xs sm:text-sm font-medium"
-              >
-                🔗 Employee Details Drive
-              </a>
-            </div>
+            {/* Employee Details Drive - Admin Only */}
+            {isAdmin && (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4 sm:mb-6 py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-500/20">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4 text-purple-400" />
+                  <span className="text-white/80 text-xs sm:text-sm">Employee Details Drive</span>
+                  <span className="text-purple-400 hidden sm:inline">|</span>
+                </div>
+                <a 
+                  href="https://drive.google.com/drive/folders/1-7PHoUruvtXV6JdKgXK8dE-xhfZaTz9l?usp=sharing" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-purple-400 hover:text-purple-300 transition-colors text-xs sm:text-sm font-medium"
+                >
+                  🔗 Employee Details Drive
+                </a>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-4 sm:mb-6" />
