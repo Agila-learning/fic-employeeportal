@@ -45,8 +45,8 @@ const Auth = () => {
 
     const timeout = setTimeout(() => {
       setIsLoginSubmitting(false);
-      toast.error('Login timed out. Please check your connection and try again.');
-    }, 15000);
+      toast.error('Login is taking longer than expected. Please wait a few more seconds and check your connection.');
+    }, 45000);
 
     const result = await login(loginEmail, loginPassword);
     clearTimeout(timeout);
