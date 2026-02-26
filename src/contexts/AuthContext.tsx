@@ -20,46 +20,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserData = async (supabaseUser: SupabaseUser) => {
-    try {
-      // Get profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', supabaseUser.id)
-        .single();
+  const fetchUserData = async (supabaseUser: SupabaseUser, retries = 2): Promise<User | null> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        // Get profile and role in parallel for faster loading
+        const [profileResult, roleResult] = await Promise.all([
+          supabase.from('profiles').select('*').eq('user_id', supabaseUser.id).single(),
+          supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id).single(),
+        ]);
 
-      if (profileError) throw profileError;
+        if (profileResult.error) throw profileResult.error;
+        if (roleResult.error) throw roleResult.error;
 
-      // Check if user is active
-      if (profile && !profile.is_active) {
-        await supabase.auth.signOut();
+        const profile = profileResult.data;
+        const roleData = roleResult.data;
+
+        // Check if user is active
+        if (profile && !profile.is_active) {
+          await supabase.auth.signOut();
+          return null;
+        }
+
+        return {
+          id: supabaseUser.id,
+          name: profile?.name || supabaseUser.email || 'User',
+          email: supabaseUser.email || '',
+          role: roleData?.role as AppRole || 'employee',
+          employee_id: profile?.employee_id,
+          is_active: profile?.is_active,
+        };
+      } catch (error: any) {
+        if (attempt < retries && (error.message?.includes('fetch') || error.message?.includes('Failed') || error.code === 'PGRST301')) {
+          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+          continue;
+        }
+        if (import.meta.env.DEV) {
+          console.error('[DEV] Error fetching user data:', error);
+        }
         return null;
       }
-
-      // Get role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', supabaseUser.id)
-        .single();
-
-      if (roleError) throw roleError;
-
-      return {
-        id: supabaseUser.id,
-        name: profile?.name || supabaseUser.email || 'User',
-        email: supabaseUser.email || '',
-        role: roleData?.role as AppRole || 'employee',
-        employee_id: profile?.employee_id,
-        is_active: profile?.is_active,
-      };
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[DEV] Error fetching user data:', error);
-      }
-      return null;
     }
+    return null;
   };
 
   useEffect(() => {
@@ -113,28 +114,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      if (data.user) {
-        const userData = await fetchUserData(data.user);
-        if (!userData) {
-          return { success: false, error: 'Account is deactivated or not found' };
+        if (error) {
+          // Don't retry auth errors (wrong credentials)
+          if (error.message.includes('Invalid') || error.message.includes('credentials')) {
+            return { success: false, error: error.message };
+          }
+          // Retry on network/rate limit errors
+          if (attempt < maxRetries && (error.message.includes('fetch') || error.message.includes('rate') || error.message.includes('network'))) {
+            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            continue;
+          }
+          return { success: false, error: error.message };
         }
-        setUser(userData);
-      }
 
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+        if (data.user) {
+          const userData = await fetchUserData(data.user);
+          if (!userData) {
+            return { success: false, error: 'Account is deactivated or not found' };
+          }
+          setUser(userData);
+        }
+
+        return { success: true };
+      } catch (error: any) {
+        if (attempt < maxRetries && (error.message?.includes('fetch') || error.message?.includes('Failed'))) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        return { success: false, error: error.message?.includes('fetch') ? 'Network error. Please check your connection and try again.' : error.message };
+      }
     }
+    return { success: false, error: 'Unable to connect. Please try again.' };
   };
 
   const signup = async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {

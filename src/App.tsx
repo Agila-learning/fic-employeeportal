@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import MobileDesktopPopup from "@/components/ui/MobileDesktopPopup";
 import { lazy, Suspense } from "react";
 
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -50,11 +51,16 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: (failureCount, error: any) => {
+        // Don't retry on auth errors
+        if (error?.status === 401 || error?.status === 403) return false;
+        return failureCount < 3;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15000),
       refetchOnWindowFocus: false,
+      networkMode: 'offlineFirst',
     },
   },
 });
@@ -68,6 +74,7 @@ const App = () => (
           <Sonner />
           <MobileDesktopPopup />
           <BrowserRouter>
+            <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -108,6 +115,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
