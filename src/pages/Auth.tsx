@@ -25,16 +25,17 @@ const Auth = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
 
+  // Check user FIRST — login sets user before isLoading clears
+  if (user) {
+    return <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace />;
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
-  }
-
-  if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
