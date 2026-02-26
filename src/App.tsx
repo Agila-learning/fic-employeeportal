@@ -41,6 +41,7 @@ const EmployeeLeave = lazy(() => import("./pages/employee/EmployeeLeave"));
 const EmployeeExpenses = lazy(() => import("./pages/employee/EmployeeExpenses"));
 const EmployeePayslips = lazy(() => import("./pages/employee/EmployeePayslips"));
 const Settings = lazy(() => import("./pages/Settings"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const PageLoader = () => (
   <div className="flex h-screen items-center justify-center bg-background">
@@ -80,6 +81,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Navigate to="/auth" replace />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminDashboard />} />
