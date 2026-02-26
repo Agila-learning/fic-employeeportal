@@ -142,51 +142,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const normalizeIdentifier = (value: string) =>
-      value
-        .normalize('NFKC')
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-        .trim()
-        .toLowerCase();
+    const normalizedEmail = email
+      .normalize('NFKC')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .trim()
+      .toLowerCase();
 
-    const normalizePassword = (value: string) =>
-      value
-        .normalize('NFKC')
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-        .replace(/\u00A0/g, ' ')
-        .trimEnd();
+    const normalizedPassword = password
+      .normalize('NFKC')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\u00A0/g, ' ')
+      .trimEnd();
 
-    const normalizedEmail = normalizeIdentifier(email);
-    const trimmedPassword = normalizePassword(password);
+    const passwordCandidates = Array.from(new Set([password, normalizedPassword]));
 
     const maxRetries = 2;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: normalizedEmail,
-          password: trimmedPassword,
-        });
+        let lastInvalidCredentialsError: string | undefined;
 
-        if (error) {
-          if (error.message.includes('Invalid') || error.message.includes('credentials')) {
-            return { success: false, error: error.message };
+        for (const candidatePassword of passwordCandidates) {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password: candidatePassword,
+          });
+
+          if (!error) {
+            if (data.user) {
+              const userData = await fetchUserData(data.user);
+              if (!userData) {
+                return { success: false, error: 'Account is deactivated or not found' };
+              }
+              setUser(userData);
+            }
+
+            return { success: true };
           }
+
+          if (error.message.includes('Invalid') || error.message.includes('credentials')) {
+            lastInvalidCredentialsError = error.message;
+            continue;
+          }
+
           if (attempt < maxRetries && (error.message.includes('fetch') || error.message.includes('rate') || error.message.includes('network'))) {
             await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
             continue;
           }
+
           return { success: false, error: error.message };
         }
 
-        if (data.user) {
-          const userData = await fetchUserData(data.user);
-          if (!userData) {
-            return { success: false, error: 'Account is deactivated or not found' };
-          }
-          setUser(userData);
+        if (lastInvalidCredentialsError) {
+          return { success: false, error: lastInvalidCredentialsError };
         }
-
-        return { success: true };
       } catch (error: any) {
         if (attempt < maxRetries && (error.message?.includes('fetch') || error.message?.includes('Failed'))) {
           await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
