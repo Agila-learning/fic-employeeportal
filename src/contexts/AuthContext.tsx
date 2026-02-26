@@ -67,48 +67,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
     let initialSessionHandled = false;
 
+    const finishAuthInit = () => {
+      if (!isMounted || initialSessionHandled) return;
+      initialSessionHandled = true;
+      setIsLoading(false);
+    };
+
+    // Hard safety timeout: never allow infinite loading on flaky mobile networks
+    const initSafetyTimer = setTimeout(() => {
+      if (import.meta.env.DEV) {
+        console.warn('[DEV] Auth init safety timeout reached; forcing loading=false');
+      }
+      finishAuthInit();
+    }, 8000);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
 
         setSession(session);
-        
+
         if (session?.user) {
-          // Defer fetching user data to avoid deadlock with Supabase internals
+          // Defer fetching user data to avoid deadlock with auth internals
           setTimeout(async () => {
             if (!isMounted) return;
             const userData = await fetchUserData(session.user);
             if (!isMounted) return;
             setUser(userData);
-            setIsLoading(false);
-            initialSessionHandled = true;
+            finishAuthInit();
           }, 0);
         } else {
           setUser(null);
-          setIsLoading(false);
-          initialSessionHandled = true;
+          finishAuthInit();
         }
       }
     );
 
-    // Fallback: if onAuthStateChange hasn't fired within 1s, use getSession
+    // Fallback: if listener hasn't fired quickly, read session with a bounded timeout
     const fallbackTimer = setTimeout(async () => {
       if (!isMounted || initialSessionHandled) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!isMounted || initialSessionHandled) return;
-      setSession(session);
-      if (session?.user) {
-        const userData = await fetchUserData(session.user);
-        if (!isMounted) return;
-        setUser(userData);
+
+      try {
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('getSession timeout')), 3000)),
+        ]);
+
+        if (!isMounted || initialSessionHandled) return;
+
+        const session = sessionResult.data.session;
+        setSession(session);
+
+        if (session?.user) {
+          const userData = await fetchUserData(session.user);
+          if (!isMounted) return;
+          setUser(userData);
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('[DEV] Auth fallback session init failed:', error);
+        }
+      } finally {
+        finishAuthInit();
       }
-      setIsLoading(false);
     }, 1000);
 
     return () => {
       isMounted = false;
       clearTimeout(fallbackTimer);
+      clearTimeout(initSafetyTimer);
       subscription.unsubscribe();
     };
   }, []);
