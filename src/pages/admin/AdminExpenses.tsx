@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { CalendarIcon, Download, TrendingDown, TrendingUp, Wallet, Users, CheckCircle, XCircle, ExternalLink, Clock, Plus, Trash2, IndianRupee, Upload, FileImage, UserCircle, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx-js-style';
+import { createWorkbook, setColumnWidths, applyHeaderStyle, downloadWorkbook, styleCell } from '@/utils/excelExport';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const PIE_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4', '#e11d48'];
@@ -224,41 +224,40 @@ const AdminMyExpenses = () => {
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [filteredExpenses]);
 
-  const exportExcel = () => {
-    const wb = XLSX.utils.book_new();
-    const hStyle = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: '1A5276' } }, alignment: { horizontal: 'center' as const }, border: { bottom: { style: 'thin' as const, color: { rgb: '000000' } } } };
+  const exportExcel = async () => {
+    const wb = createWorkbook();
 
     const allDebit = expenses.reduce((s, e) => s + Number(e.amount), 0);
     const allCredit = credits.reduce((s, c) => s + Number(c.amount), 0);
+    const ws1 = wb.addWorksheet('Summary');
+    setColumnWidths(ws1, [20, 18, 18, 18]);
     const summaryData = [
-      ['Admin Expense Report'], ['Generated:', format(new Date(), 'PPP')], [''],
+      ['Admin Expense Report', '', '', ''], ['Generated:', format(new Date(), 'PPP'), '', ''], ['', '', '', ''],
       ['Period', 'Debit (₹)', 'Credit (₹)', 'Balance (₹)'],
       ['Today', dailyDebit, dailyCredit, dailyCredit - dailyDebit],
       ['This Week', weeklyDebit, weeklyCredit, weeklyCredit - weeklyDebit],
       ['This Month', monthlyDebit, monthlyCredit, monthlyCredit - monthlyDebit],
       ['All Time', allDebit, allCredit, allCredit - allDebit],
     ];
-    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-    ws1['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    if (ws1['A1']) ws1['A1'].s = { font: { bold: true, sz: 16, color: { rgb: '1A5276' } } };
-    for (let c = 0; c < 4; c++) { const cell = XLSX.utils.encode_cell({ r: 3, c }); if (ws1[cell]) ws1[cell].s = hStyle; }
-    XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+    summaryData.forEach(row => ws1.addRow(row));
+    styleCell(ws1.getRow(1).getCell(1), { fontBold: true, fontSize: 16, fontColor: '1A5276' });
+    applyHeaderStyle(ws1, 4, '1A5276', 4);
 
+    const ws2 = wb.addWorksheet('Debit');
     const expHeaders = ['Date', 'Category', 'Description', 'Paid To', 'Amount (₹)'];
-    const expRows = expenses.map(e => [format(parseISO(e.expense_date), 'dd-MMM-yyyy'), e.category, e.description, e.paid_to || '-', Number(e.amount)]);
-    const ws2 = XLSX.utils.aoa_to_sheet([expHeaders, ...expRows]);
-    ws2['!cols'] = [{ wch: 15 }, { wch: 18 }, { wch: 35 }, { wch: 20 }, { wch: 15 }];
-    for (let c = 0; c < expHeaders.length; c++) { const cell = XLSX.utils.encode_cell({ r: 0, c }); if (ws2[cell]) ws2[cell].s = hStyle; }
-    XLSX.utils.book_append_sheet(wb, ws2, 'Debit');
+    setColumnWidths(ws2, [15, 18, 35, 20, 15]);
+    ws2.addRow(expHeaders);
+    applyHeaderStyle(ws2, 5, '1A5276');
+    expenses.forEach(e => ws2.addRow([format(parseISO(e.expense_date), 'dd-MMM-yyyy'), e.category, e.description, e.paid_to || '-', Number(e.amount)]));
 
+    const ws3 = wb.addWorksheet('Credit');
     const credHeaders = ['Date', 'Given By', 'Role', 'Description', 'Amount (₹)'];
-    const credRows = credits.map(c => [format(parseISO(c.credit_date), 'dd-MMM-yyyy'), c.given_by, c.given_by_role, c.description || '-', Number(c.amount)]);
-    const ws3 = XLSX.utils.aoa_to_sheet([credHeaders, ...credRows]);
-    ws3['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 15 }];
-    for (let c = 0; c < credHeaders.length; c++) { const cell = XLSX.utils.encode_cell({ r: 0, c }); if (ws3[cell]) ws3[cell].s = hStyle; }
-    XLSX.utils.book_append_sheet(wb, ws3, 'Credit');
+    setColumnWidths(ws3, [15, 20, 12, 30, 15]);
+    ws3.addRow(credHeaders);
+    applyHeaderStyle(ws3, 5, '1A5276');
+    credits.forEach(c => ws3.addRow([format(parseISO(c.credit_date), 'dd-MMM-yyyy'), c.given_by, c.given_by_role, c.description || '-', Number(c.amount)]));
 
-    XLSX.writeFile(wb, `Admin_Expenses_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    await downloadWorkbook(wb, `Admin_Expenses_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const timeLabel = timeView === 'daily' ? "Today's" : timeView === 'weekly' ? "This Week's" : timeView === 'monthly' ? "This Month's" : 'All Time';
@@ -686,37 +685,36 @@ const EmployeeExpenseManagement = () => {
     return <Badge variant="outline" className="text-amber-600 border-amber-300 dark:text-amber-400">Pending</Badge>;
   };
 
-  const exportExcel = () => {
-    const wb = XLSX.utils.book_new();
-    const hStyle = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: '1A5276' } }, alignment: { horizontal: 'center' as const }, border: { bottom: { style: 'thin' as const, color: { rgb: '000000' } } } };
+  const exportExcel = async () => {
+    const wb = createWorkbook();
 
+    const ws1 = wb.addWorksheet('Summary');
+    setColumnWidths(ws1, [25, 18, 18, 18]);
     const summaryRows = [
-      ['Employee Expense Summary'], ['Generated:', format(new Date(), 'PPP')], [''],
+      ['Employee Expense Summary', '', '', ''], ['Generated:', format(new Date(), 'PPP'), '', ''], ['', '', '', ''],
       ['Employee', 'Total Spent (₹)', 'Total Credited (₹)', 'Balance (₹)'],
       ...employeeSummary.map(([, v]) => [v.name, v.spent, v.credited, v.credited - v.spent]),
-      [''], ['Grand Total', totalSpent, totalCredited, totalCredited - totalSpent],
+      ['', '', '', ''], ['Grand Total', totalSpent, totalCredited, totalCredited - totalSpent],
     ];
-    const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
-    ws1['!cols'] = [{ wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
-    if (ws1['A1']) ws1['A1'].s = { font: { bold: true, sz: 16, color: { rgb: '1A5276' } } };
-    for (let c = 0; c < 4; c++) { const cell = XLSX.utils.encode_cell({ r: 3, c }); if (ws1[cell]) ws1[cell].s = hStyle; }
-    XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+    summaryRows.forEach(row => ws1.addRow(row));
+    styleCell(ws1.getRow(1).getCell(1), { fontBold: true, fontSize: 16, fontColor: '1A5276' });
+    applyHeaderStyle(ws1, 4, '1A5276', 4);
 
+    const ws2 = wb.addWorksheet('All Expenses');
     const expHeaders = ['Employee', 'Date', 'Category', 'Description', 'Amount (₹)', 'Status'];
-    const expRows = filteredExpenses.map(e => [e.user_name, format(parseISO(e.expense_date), 'dd-MMM-yyyy'), e.category, e.description, Number(e.amount), e.approval_status]);
-    const ws2 = XLSX.utils.aoa_to_sheet([expHeaders, ...expRows]);
-    ws2['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 18 }, { wch: 35 }, { wch: 15 }, { wch: 12 }];
-    for (let c = 0; c < 6; c++) { const cell = XLSX.utils.encode_cell({ r: 0, c }); if (ws2[cell]) ws2[cell].s = hStyle; }
-    XLSX.utils.book_append_sheet(wb, ws2, 'All Expenses');
+    setColumnWidths(ws2, [20, 15, 18, 35, 15, 12]);
+    ws2.addRow(expHeaders);
+    applyHeaderStyle(ws2, 6, '1A5276');
+    filteredExpenses.forEach(e => ws2.addRow([e.user_name, format(parseISO(e.expense_date), 'dd-MMM-yyyy'), e.category, e.description, Number(e.amount), e.approval_status]));
 
+    const ws3 = wb.addWorksheet('All Credits');
     const credHeaders = ['Employee', 'Date', 'Given By', 'Role', 'Description', 'Amount (₹)'];
-    const credRows = filteredCredits.map(c => [c.user_name, format(parseISO(c.credit_date), 'dd-MMM-yyyy'), c.given_by, c.given_by_role, c.description || '-', Number(c.amount)]);
-    const ws3 = XLSX.utils.aoa_to_sheet([credHeaders, ...credRows]);
-    ws3['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 15 }];
-    for (let c = 0; c < 6; c++) { const cell = XLSX.utils.encode_cell({ r: 0, c }); if (ws3[cell]) ws3[cell].s = hStyle; }
-    XLSX.utils.book_append_sheet(wb, ws3, 'All Credits');
+    setColumnWidths(ws3, [20, 15, 20, 12, 30, 15]);
+    ws3.addRow(credHeaders);
+    applyHeaderStyle(ws3, 6, '1A5276');
+    filteredCredits.forEach(c => ws3.addRow([c.user_name, format(parseISO(c.credit_date), 'dd-MMM-yyyy'), c.given_by, c.given_by_role, c.description || '-', Number(c.amount)]));
 
-    XLSX.writeFile(wb, `Employee_Expenses_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    await downloadWorkbook(wb, `Employee_Expenses_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   return (

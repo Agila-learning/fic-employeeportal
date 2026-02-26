@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
+import { createWorkbook, setColumnWidths, addDataRows, downloadWorkbook } from '@/utils/excelExport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -218,29 +218,25 @@ const AdminReports = () => {
       }
     }
 
-    const wb = XLSX.utils.book_new();
+    const wb = createWorkbook();
     
     // Main reports sheet
-    const ws1 = XLSX.utils.json_to_sheet(mainExportData);
-    ws1['!cols'] = [
-      { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 50 }, { wch: 50 },
-      { wch: 20 }, { wch: 18 }, { wch: 18 },
-    ];
-    XLSX.utils.book_append_sheet(wb, ws1, 'Reports');
+    const ws1 = wb.addWorksheet('Reports');
+    const reportHeaders = ['Date', 'Employee Name', 'Department', 'Morning Report', 'Afternoon Report', 'Candidates Screened (HR)', 'Submitted At', 'Last Updated'];
+    setColumnWidths(ws1, [12, 25, 12, 50, 50, 20, 18, 18]);
+    addDataRows(ws1, reportHeaders, mainExportData.map(r => Object.values(r)));
 
     // Candidate entries sheet
     if (candidateExportData.length > 0) {
-      const ws2 = XLSX.utils.json_to_sheet(candidateExportData);
-      ws2['!cols'] = [
-        { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 25 }, { wch: 15 },
-        { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 40 },
-      ];
-      XLSX.utils.book_append_sheet(wb, ws2, 'BDA-HR Candidates');
+      const ws2 = wb.addWorksheet('BDA-HR Candidates');
+      const candHeaders = ['Date', 'Employee Name', 'Department', 'Candidate Name', 'Mobile Number', 'Domain', 'Agent Name', 'Location', 'Comments'];
+      setColumnWidths(ws2, [12, 25, 12, 25, 15, 15, 25, 20, 40]);
+      addDataRows(ws2, candHeaders, candidateExportData.map(r => Object.values(r)));
     }
 
     const timestamp = format(new Date(), 'yyyy-MM-dd_HHmm');
     const dateLabel = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : 'all-dates';
-    XLSX.writeFile(wb, `Daily_Reports_${dateLabel}_exported_${timestamp}.xlsx`);
+    await downloadWorkbook(wb, `Daily_Reports_${dateLabel}_exported_${timestamp}.xlsx`);
     toast.success('Report exported successfully');
   };
 

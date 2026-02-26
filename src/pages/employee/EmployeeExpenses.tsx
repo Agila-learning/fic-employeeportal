@@ -13,7 +13,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { CalendarIcon, Plus, Trash2, Download, IndianRupee, TrendingUp, TrendingDown, Wallet, Upload, FileImage, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx-js-style';
+import { createWorkbook, setColumnWidths, applyHeaderStyle, applyRowStyles, downloadWorkbook, styleCell, defaultBorder } from '@/utils/excelExport';
 
 const CATEGORIES = [
   'Tea/Coffee', 'Snacks', 'Pooja Materials', 'Office Use Things',
@@ -97,63 +97,70 @@ const EmployeeExpenses = () => {
     return <Badge variant="outline" className="text-amber-600 border-amber-300 dark:text-amber-400">Pending</Badge>;
   };
 
-  const exportExcel = () => {
-    const wb = XLSX.utils.book_new();
-    const headerStyle = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: '1A5276' } }, alignment: { horizontal: 'center' as const }, border: { bottom: { style: 'thin' as const, color: { rgb: '000000' } } } };
+  const exportExcel = async () => {
+    const wb = createWorkbook();
 
+    // Summary sheet
+    const ws1 = wb.addWorksheet('Summary');
+    setColumnWidths(ws1, [25, 20]);
     const summaryData = [
-      ['Expense Summary Report'],
+      ['Expense Summary Report', ''],
       ['Generated:', format(new Date(), 'PPP')],
-      [''],
+      ['', ''],
       ['Metric', 'Amount (₹)'],
       ['Total Spent', totalSpent],
       ['Total Credited', totalCredited],
       ['Balance Remaining', totalCredited - totalSpent],
-      [''],
+      ['', ''],
       ['Daily Spent', dailySpent],
       ['Weekly Spent', weeklySpent],
       ['Monthly Spent', monthlySpent],
     ];
-    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-    ws1['!cols'] = [{ wch: 25 }, { wch: 20 }];
-    if (ws1['A1']) ws1['A1'].s = { font: { bold: true, sz: 16, color: { rgb: '1A5276' } } };
-    if (ws1['A4']) ws1['A4'].s = headerStyle;
-    if (ws1['B4']) ws1['B4'].s = headerStyle;
+    summaryData.forEach(row => ws1.addRow(row));
+    styleCell(ws1.getRow(1).getCell(1), { fontBold: true, fontSize: 16, fontColor: '1A5276' });
+    applyHeaderStyle(ws1, 2, '1A5276', 4);
     const balance = totalCredited - totalSpent;
-    if (ws1['B7']) ws1['B7'].s = { font: { bold: true, color: { rgb: balance >= 0 ? '27AE60' : 'E74C3C' } }, fill: { fgColor: { rgb: balance >= 0 ? 'D5F5E3' : 'FADBD8' } } };
-    XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+    styleCell(ws1.getRow(7).getCell(2), {
+      fontBold: true,
+      fontColor: balance >= 0 ? '27AE60' : 'E74C3C',
+      fillColor: balance >= 0 ? 'D5F5E3' : 'FADBD8',
+    });
 
+    // Expenses sheet
+    const ws2 = wb.addWorksheet('Expenses');
     const expHeaders = ['Date', 'Category', 'Description', 'Amount (₹)', 'Status'];
-    const expRows = expenses.map(e => [format(parseISO(e.expense_date), 'dd-MMM-yyyy'), e.category, e.description, Number(e.amount), e.approval_status]);
-    const ws2 = XLSX.utils.aoa_to_sheet([expHeaders, ...expRows]);
-    ws2['!cols'] = [{ wch: 15 }, { wch: 18 }, { wch: 35 }, { wch: 15 }, { wch: 12 }];
-    for (let c = 0; c < expHeaders.length; c++) { const cell = XLSX.utils.encode_cell({ r: 0, c }); if (ws2[cell]) ws2[cell].s = headerStyle; }
-    expRows.forEach((row, i) => {
-      for (let c = 0; c < 5; c++) {
-        const cell = XLSX.utils.encode_cell({ r: i + 1, c });
-        if (ws2[cell]) {
-          const status = row[4] as string;
-          const statusColor = status === 'approved' ? 'D5F5E3' : status === 'rejected' ? 'FADBD8' : 'FEF9E7';
-          ws2[cell].s = { fill: { fgColor: { rgb: c === 4 ? statusColor : (i % 2 === 0 ? 'F8F9FA' : 'FFFFFF') } }, border: { bottom: { style: 'thin' as const, color: { rgb: 'DEE2E6' } } } };
-        }
+    setColumnWidths(ws2, [15, 18, 35, 15, 12]);
+    ws2.addRow(expHeaders);
+    applyHeaderStyle(ws2, 5, '1A5276');
+    expenses.forEach((e, i) => {
+      const row = ws2.addRow([format(parseISO(e.expense_date), 'dd-MMM-yyyy'), e.category, e.description, Number(e.amount), e.approval_status]);
+      const status = e.approval_status;
+      const statusColor = status === 'approved' ? 'D5F5E3' : status === 'rejected' ? 'FADBD8' : 'FEF9E7';
+      for (let c = 1; c <= 5; c++) {
+        styleCell(row.getCell(c), {
+          fillColor: c === 5 ? statusColor : (i % 2 === 0 ? 'F8F9FA' : 'FFFFFF'),
+          border: defaultBorder,
+        });
       }
     });
-    XLSX.utils.book_append_sheet(wb, ws2, 'Expenses');
 
+    // Credits sheet
+    const ws3 = wb.addWorksheet('Credits');
     const credHeaders = ['Date', 'Given By', 'Role', 'Description', 'Amount (₹)'];
-    const credRows = credits.map(c => [format(parseISO(c.credit_date), 'dd-MMM-yyyy'), c.given_by, c.given_by_role, c.description || '-', Number(c.amount)]);
-    const ws3 = XLSX.utils.aoa_to_sheet([credHeaders, ...credRows]);
-    ws3['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 15 }];
-    for (let c = 0; c < credHeaders.length; c++) { const cell = XLSX.utils.encode_cell({ r: 0, c }); if (ws3[cell]) ws3[cell].s = headerStyle; }
-    credRows.forEach((_, i) => {
-      for (let c = 0; c < 5; c++) {
-        const cell = XLSX.utils.encode_cell({ r: i + 1, c });
-        if (ws3[cell]) ws3[cell].s = { fill: { fgColor: { rgb: i % 2 === 0 ? 'EBF5FB' : 'FFFFFF' } }, border: { bottom: { style: 'thin' as const, color: { rgb: 'DEE2E6' } } } };
+    setColumnWidths(ws3, [15, 20, 12, 30, 15]);
+    ws3.addRow(credHeaders);
+    applyHeaderStyle(ws3, 5, '1A5276');
+    credits.forEach((c, i) => {
+      const row = ws3.addRow([format(parseISO(c.credit_date), 'dd-MMM-yyyy'), c.given_by, c.given_by_role, c.description || '-', Number(c.amount)]);
+      for (let col = 1; col <= 5; col++) {
+        styleCell(row.getCell(col), {
+          fillColor: i % 2 === 0 ? 'EBF5FB' : 'FFFFFF',
+          border: defaultBorder,
+        });
       }
     });
-    XLSX.utils.book_append_sheet(wb, ws3, 'Credits');
 
-    XLSX.writeFile(wb, `My_Expenses_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    await downloadWorkbook(wb, `My_Expenses_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   return (

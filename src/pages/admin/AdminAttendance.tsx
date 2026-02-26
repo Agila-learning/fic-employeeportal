@@ -21,7 +21,7 @@ import EmployeeAttendanceExport from '@/components/attendance/EmployeeAttendance
 import AttendanceMapView from '@/components/attendance/AttendanceMapView';
 import LocationTrendReport from '@/components/attendance/LocationTrendReport';
 import { getLocationDisplayName } from '@/utils/geolocation';
-import * as XLSX from 'xlsx-js-style';
+import { createWorkbook, setColumnWidths, applyHeaderStyle, applyRowStyles, downloadWorkbook, styleCell, defaultBorder, solidBorder } from '@/utils/excelExport';
 
 const AdminAttendance = () => {
   const { attendance, loading, updateAttendance, adminMarkAttendance } = useAttendance();
@@ -122,47 +122,10 @@ const AdminAttendance = () => {
   const halfDayToday = todayRecords.filter(a => a.half_day === true).length;
   const absentToday = todayRecords.filter(a => a.status === 'absent').length;
 
-  // Helper to apply cell styles (fill color) to a range
-  const applyHeaderStyle = (ws: XLSX.WorkSheet, colCount: number, fillColor: string) => {
-    for (let c = 0; c < colCount; c++) {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c });
-      if (!ws[cellRef]) continue;
-      ws[cellRef].s = {
-        fill: { fgColor: { rgb: fillColor } },
-        font: { bold: true, color: { rgb: 'FFFFFF' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: '000000' } },
-          bottom: { style: 'thin', color: { rgb: '000000' } },
-          left: { style: 'thin', color: { rgb: '000000' } },
-          right: { style: 'thin', color: { rgb: '000000' } },
-        }
-      };
-    }
-  };
-
-  const applyRowStyles = (ws: XLSX.WorkSheet, rowCount: number, colCount: number, colorFn?: (row: number) => string | null) => {
-    for (let r = 1; r <= rowCount; r++) {
-      for (let c = 0; c < colCount; c++) {
-        const cellRef = XLSX.utils.encode_cell({ r, c });
-        if (!ws[cellRef]) continue;
-        const bgColor = colorFn ? colorFn(r) : (r % 2 === 0 ? 'F2F2F2' : 'FFFFFF');
-        ws[cellRef].s = {
-          fill: { fgColor: { rgb: bgColor || (r % 2 === 0 ? 'F2F2F2' : 'FFFFFF') } },
-          alignment: { horizontal: 'center', vertical: 'center' },
-          border: {
-            top: { style: 'thin', color: { rgb: 'D0D0D0' } },
-            bottom: { style: 'thin', color: { rgb: 'D0D0D0' } },
-            left: { style: 'thin', color: { rgb: 'D0D0D0' } },
-            right: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          }
-        };
-      }
-    }
-  };
+  // Helper functions are now imported from excelExport utility
 
   // Export to Excel with summary + detailed sheets with colors
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     let dataToExport = filteredAttendance.length > 0 ? filteredAttendance : attendance;
     
     // Apply export date range filter
@@ -184,7 +147,7 @@ const AdminAttendance = () => {
       return;
     }
 
-    const wb = XLSX.utils.book_new();
+    const wb = createWorkbook();
 
     // ===== SHEET 1: Employee Summary =====
     const empMap: Record<string, { name: string; present: number; halfDay: number; absent: number; totalDays: number }> = {};
@@ -206,31 +169,26 @@ const AdminAttendance = () => {
     const summaryRows = Object.values(empMap).map(e => {
       const effectivePresent = e.present + (e.halfDay * 0.5);
       const pct = e.totalDays > 0 ? Math.round((effectivePresent / e.totalDays) * 100) : 0;
-      return {
-        'Employee Name': e.name,
-        'Total Days': e.totalDays,
-        'Present Days': e.present,
-        'Half Days': e.halfDay,
-        'Absent Days': e.absent,
-        'Effective Present': effectivePresent,
-        'Attendance %': `${pct}%`,
-      };
+      return [e.name, e.totalDays, e.present, e.halfDay, e.absent, effectivePresent, `${pct}%`];
     });
 
-    const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
-    summarySheet['!cols'] = [
-      { wch: 25 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 13 }, { wch: 16 }, { wch: 14 },
-    ];
+    const summarySheet = wb.addWorksheet('Employee Summary');
+    const summaryHeaders = ['Employee Name', 'Total Days', 'Present Days', 'Half Days', 'Absent Days', 'Effective Present', 'Attendance %'];
+    setColumnWidths(summarySheet, [25, 12, 14, 12, 13, 16, 14]);
+    summarySheet.addRow(summaryHeaders);
     applyHeaderStyle(summarySheet, 7, '2E86C1');
-    applyRowStyles(summarySheet, summaryRows.length, 7, (row) => {
-      // Color the attendance % column based on value
-      const pctStr = summaryRows[row - 1]?.['Attendance %'] || '0%';
+    summaryRows.forEach((row, idx) => {
+      const dataRow = summarySheet.addRow(row);
+      const pctStr = row[6] as string;
       const pct = parseInt(pctStr);
-      if (pct >= 80) return 'D5F5E3'; // green
-      if (pct >= 60) return 'FEF9E7'; // yellow
-      return 'FADBD8'; // red
+      const bgColor = pct >= 80 ? 'D5F5E3' : pct >= 60 ? 'FEF9E7' : 'FADBD8';
+      for (let c = 1; c <= 7; c++) {
+        const cell = dataRow.getCell(c);
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${bgColor}` } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = defaultBorder;
+      }
     });
-    XLSX.utils.book_append_sheet(wb, summarySheet, 'Employee Summary');
 
     // ===== SHEET 2: All Records (Grouped by Date) =====
     const mapRecord = (record: Attendance) => ({
@@ -244,10 +202,13 @@ const AdminAttendance = () => {
       'Location Verified': record.location_verified ? 'Yes' : 'No'
     });
 
-    const colWidths = [
-      { wch: 25 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 40 }, { wch: 16 },
-    ];
+    const colWidths = [25, 14, 12, 12, 20, 14, 40, 16];
     const cols = ['Employee Name', 'Date', 'Day', 'Status', 'Work Location', 'Marked At', 'Leave Reason', 'Location Verified'];
+
+    const allSheet = wb.addWorksheet('All Records');
+    setColumnWidths(allSheet, colWidths);
+    allSheet.addRow(cols);
+    applyHeaderStyle(allSheet, 8, '1A5276');
 
     // Group records by date
     const sortedData = [...dataToExport].sort((a, b) => a.date.localeCompare(b.date));
@@ -257,126 +218,72 @@ const AdminAttendance = () => {
       dateGroups[record.date].push(record);
     });
 
-    // Build rows with date headers and blank separator rows
-    const allSheet = XLSX.utils.aoa_to_sheet([cols]); // header row
-    allSheet['!cols'] = colWidths;
-    applyHeaderStyle(allSheet, 8, '1A5276');
-
-    let currentRow = 1; // row 0 is header
-    const dateHeaderRows: number[] = [];
-    const statusRowMap: Record<number, string> = {};
-
     const sortedDates = Object.keys(dateGroups).sort();
     sortedDates.forEach((date, dateIdx) => {
       // Add blank separator row before each date group (except the first)
       if (dateIdx > 0) {
-        const blankRow = Array(8).fill('');
-        XLSX.utils.sheet_add_aoa(allSheet, [blankRow], { origin: currentRow });
-        currentRow++;
+        allSheet.addRow([]);
       }
 
       // Date header row
       const dayName = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
       const dateLabel = `📅  ${date}  —  ${dayName}  (${dateGroups[date].length} employees)`;
-      const dateHeaderRow = [dateLabel, '', '', '', '', '', '', ''];
-      XLSX.utils.sheet_add_aoa(allSheet, [dateHeaderRow], { origin: currentRow });
-      // Merge the date header across all columns
-      if (!allSheet['!merges']) allSheet['!merges'] = [];
-      allSheet['!merges'].push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 7 } });
-      dateHeaderRows.push(currentRow);
-      currentRow++;
+      const dateRow = allSheet.addRow([dateLabel]);
+      allSheet.mergeCells(dateRow.number, 1, dateRow.number, 8);
+      for (let c = 1; c <= 8; c++) {
+        styleCell(dateRow.getCell(c), {
+          fillColor: '1B4F72',
+          fontBold: true,
+          fontColor: 'FFFFFF',
+          fontSize: 12,
+          horizontal: 'left',
+          vertical: 'middle',
+          border: solidBorder,
+        });
+      }
 
       // Employee rows for this date
       dateGroups[date].forEach(record => {
         const mapped = mapRecord(record);
         const row = cols.map(c => mapped[c as keyof typeof mapped]);
-        XLSX.utils.sheet_add_aoa(allSheet, [row], { origin: currentRow });
-        statusRowMap[currentRow] = mapped['Status'];
-        currentRow++;
+        const dataRow = allSheet.addRow(row);
+        let bgColor = 'FFFFFF';
+        if (mapped['Status'] === 'Present') bgColor = 'D5F5E3';
+        else if (mapped['Status'] === 'Half Day') bgColor = 'FEF9E7';
+        else if (mapped['Status'] === 'Absent') bgColor = 'FADBD8';
+        for (let c = 1; c <= 8; c++) {
+          styleCell(dataRow.getCell(c), {
+            fillColor: bgColor,
+            horizontal: 'center',
+            vertical: 'middle',
+            border: defaultBorder,
+          });
+        }
       });
     });
 
-    // Style date header rows (dark blue background)
-    dateHeaderRows.forEach(r => {
-      for (let c = 0; c < 8; c++) {
-        const cellRef = XLSX.utils.encode_cell({ r, c });
-        if (!allSheet[cellRef]) allSheet[cellRef] = { v: '', t: 's' };
-        allSheet[cellRef].s = {
-          fill: { fgColor: { rgb: '1B4F72' } },
-          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 },
-          alignment: { horizontal: 'left', vertical: 'center' },
-          border: {
-            top: { style: 'thin', color: { rgb: '000000' } },
-            bottom: { style: 'thin', color: { rgb: '000000' } },
-            left: { style: 'thin', color: { rgb: '000000' } },
-            right: { style: 'thin', color: { rgb: '000000' } },
-          }
-        };
-      }
-    });
-
-    // Style data rows with status colors
-    Object.entries(statusRowMap).forEach(([rowStr, status]) => {
-      const r = parseInt(rowStr);
-      let bgColor = 'FFFFFF';
-      if (status === 'Present') bgColor = 'D5F5E3';
-      else if (status === 'Half Day') bgColor = 'FEF9E7';
-      else if (status === 'Absent') bgColor = 'FADBD8';
-      for (let c = 0; c < 8; c++) {
-        const cellRef = XLSX.utils.encode_cell({ r, c });
-        if (!allSheet[cellRef]) continue;
-        allSheet[cellRef].s = {
-          fill: { fgColor: { rgb: bgColor } },
-          alignment: { horizontal: 'center', vertical: 'center' },
-          border: {
-            top: { style: 'thin', color: { rgb: 'D0D0D0' } },
-            bottom: { style: 'thin', color: { rgb: 'D0D0D0' } },
-            left: { style: 'thin', color: { rgb: 'D0D0D0' } },
-            right: { style: 'thin', color: { rgb: 'D0D0D0' } },
-          }
-        };
-      }
-    });
-
-    // Set the range for the sheet
-    allSheet['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: currentRow - 1, c: 7 } });
-    XLSX.utils.book_append_sheet(wb, allSheet, 'All Records');
-
     // ===== SHEET 3: Present =====
-    const presentRecords = dataToExport.filter(a => a.status === 'present' && !a.half_day).map(mapRecord);
-    if (presentRecords.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(presentRecords);
-      ws['!cols'] = colWidths;
-      applyHeaderStyle(ws, 8, '1E8449');
-      applyRowStyles(ws, presentRecords.length, 8);
-      XLSX.utils.book_append_sheet(wb, ws, 'Present');
-    }
+    const addFilteredSheet = (sheetName: string, records: ReturnType<typeof mapRecord>[], headerColor: string) => {
+      if (records.length === 0) return;
+      const ws = wb.addWorksheet(sheetName);
+      setColumnWidths(ws, colWidths);
+      ws.addRow(cols);
+      applyHeaderStyle(ws, 8, headerColor);
+      records.forEach((rec, idx) => {
+        const row = ws.addRow(cols.map(c => rec[c as keyof typeof rec]));
+        applyRowStyles(ws, row.number, row.number, 8);
+      });
+    };
 
-    // ===== SHEET 4: Half Day =====
-    const halfDayRecords = dataToExport.filter(a => a.half_day === true).map(mapRecord);
-    if (halfDayRecords.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(halfDayRecords);
-      ws['!cols'] = colWidths;
-      applyHeaderStyle(ws, 8, 'D4AC0D');
-      applyRowStyles(ws, halfDayRecords.length, 8);
-      XLSX.utils.book_append_sheet(wb, ws, 'Half Day');
-    }
-
-    // ===== SHEET 5: Absent =====
-    const absentRecords = dataToExport.filter(a => a.status === 'absent').map(mapRecord);
-    if (absentRecords.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(absentRecords);
-      ws['!cols'] = colWidths;
-      applyHeaderStyle(ws, 8, 'C0392B');
-      applyRowStyles(ws, absentRecords.length, 8);
-      XLSX.utils.book_append_sheet(wb, ws, 'Absent');
-    }
+    addFilteredSheet('Present', dataToExport.filter(a => a.status === 'present' && !a.half_day).map(mapRecord), '1E8449');
+    addFilteredSheet('Half Day', dataToExport.filter(a => a.half_day === true).map(mapRecord), 'D4AC0D');
+    addFilteredSheet('Absent', dataToExport.filter(a => a.status === 'absent').map(mapRecord), 'C0392B');
 
     const periodLabel = exportFromDate && exportToDate 
       ? `${format(exportFromDate, 'yyyyMMdd')}_to_${format(exportToDate, 'yyyyMMdd')}`
       : periodFilter !== 'all' ? periodFilter : (monthFilter || dateFilter || today);
     const statusLabel = statusFilter !== 'all' ? `_${statusFilter}` : '';
-    XLSX.writeFile(wb, `attendance_report_${periodLabel}${statusLabel}.xlsx`);
+    await downloadWorkbook(wb, `attendance_report_${periodLabel}${statusLabel}.xlsx`);
 
     toast({ title: 'Success', description: 'Attendance report exported with summary & color coding' });
   };
