@@ -42,7 +42,13 @@ const Auth = () => {
     e.preventDefault();
     setIsLoginSubmitting(true);
 
+    const timeout = setTimeout(() => {
+      setIsLoginSubmitting(false);
+      toast.error('Login timed out. Please check your connection and try again.');
+    }, 15000);
+
     const result = await login(loginEmail, loginPassword);
+    clearTimeout(timeout);
     
     if (result.success) {
       toast.success('Welcome back!');
