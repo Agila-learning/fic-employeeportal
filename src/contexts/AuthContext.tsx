@@ -142,13 +142,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const normalizedEmail = email.trim().toLowerCase();
+    const rawIdentifier = email.trim();
+    const normalizedEmail = rawIdentifier.toLowerCase();
+    const digitsOnly = rawIdentifier.replace(/\D/g, '');
+    const isPhoneInput = !rawIdentifier.includes('@') && digitsOnly.length >= 10;
+
+    let emailToUse = normalizedEmail;
+
+    if (isPhoneInput) {
+      const localPhone = digitsOnly.slice(-10);
+      const phoneVariants = Array.from(
+        new Set([
+          rawIdentifier,
+          digitsOnly,
+          localPhone,
+          `+91${localPhone}`,
+        ].filter(Boolean))
+      );
+
+      const { data: profileByPhone, error: phoneLookupError } = await supabase
+        .from('profiles')
+        .select('email')
+        .in('phone', phoneVariants)
+        .limit(1)
+        .maybeSingle();
+
+      if (phoneLookupError) {
+        return { success: false, error: 'Unable to verify mobile number. Please try with your email.' };
+      }
+
+      if (!profileByPhone?.email) {
+        return { success: false, error: 'No account found for this mobile number. Please login with email.' };
+      }
+
+      emailToUse = profileByPhone.email.trim().toLowerCase();
+    }
 
     const maxRetries = 2;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: normalizedEmail,
+          email: emailToUse,
           password,
         });
 

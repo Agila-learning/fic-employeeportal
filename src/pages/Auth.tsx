@@ -126,13 +126,13 @@ const Auth = () => {
                     className="space-y-4"
                   >
                     <div className="space-y-2">
-                      <Label htmlFor="login-email" className="text-white/80">Email</Label>
+                      <Label htmlFor="login-email" className="text-white/80">Email or Mobile Number</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="login-email"
-                          type="email"
-                          placeholder="Enter your email"
+                          type="text"
+                          placeholder="Enter email or mobile number"
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
                           className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40"
