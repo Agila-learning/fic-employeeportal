@@ -126,13 +126,17 @@ const Auth = () => {
                     className="space-y-4"
                   >
                     <div className="space-y-2">
-                      <Label htmlFor="login-email" className="text-white/80">Email or Mobile Number</Label>
+                      <Label htmlFor="login-email" className="text-white/80">Email</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                         <Input
                           id="login-email"
-                          type="text"
-                          placeholder="Enter email or mobile number"
+                          type="email"
+                          autoComplete="email"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          placeholder="Enter your email"
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
                           className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40"
@@ -157,6 +161,10 @@ const Auth = () => {
                         <Input
                           id="login-password"
                           type={showPassword ? 'text' : 'password'}
+                          autoComplete="current-password"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           placeholder="Enter your password"
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}

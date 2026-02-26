@@ -142,56 +142,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const rawIdentifier = email.trim();
-    const normalizedEmail = rawIdentifier.toLowerCase();
-    const digitsOnly = rawIdentifier.replace(/\D/g, '');
-    const isPhoneInput = !rawIdentifier.includes('@') && digitsOnly.length >= 10;
-
-    let emailToUse = normalizedEmail;
-
-    if (isPhoneInput) {
-      const localPhone = digitsOnly.slice(-10);
-      const phoneVariants = Array.from(
-        new Set([
-          rawIdentifier,
-          digitsOnly,
-          localPhone,
-          `+91${localPhone}`,
-        ].filter(Boolean))
-      );
-
-      const { data: profileByPhone, error: phoneLookupError } = await supabase
-        .from('profiles')
-        .select('email')
-        .in('phone', phoneVariants)
-        .limit(1)
-        .maybeSingle();
-
-      if (phoneLookupError) {
-        return { success: false, error: 'Unable to verify mobile number. Please try with your email.' };
-      }
-
-      if (!profileByPhone?.email) {
-        return { success: false, error: 'No account found for this mobile number. Please login with email.' };
-      }
-
-      emailToUse = profileByPhone.email.trim().toLowerCase();
-    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trimEnd();
 
     const maxRetries = 2;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailToUse,
-          password,
+          email: normalizedEmail,
+          password: trimmedPassword,
         });
 
         if (error) {
-          // Don't retry auth errors (wrong credentials)
           if (error.message.includes('Invalid') || error.message.includes('credentials')) {
             return { success: false, error: error.message };
           }
-          // Retry on network/rate limit errors
           if (attempt < maxRetries && (error.message.includes('fetch') || error.message.includes('rate') || error.message.includes('network'))) {
             await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
             continue;
