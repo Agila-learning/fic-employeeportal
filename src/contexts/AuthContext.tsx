@@ -142,8 +142,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const trimmedPassword = password.trimEnd();
+    const normalizeIdentifier = (value: string) =>
+      value
+        .normalize('NFKC')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .trim()
+        .toLowerCase();
+
+    const normalizePassword = (value: string) =>
+      value
+        .normalize('NFKC')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/\u00A0/g, ' ')
+        .trimEnd();
+
+    const normalizedEmail = normalizeIdentifier(email);
+    const trimmedPassword = normalizePassword(password);
 
     const maxRetries = 2;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {

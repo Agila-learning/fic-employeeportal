@@ -132,6 +132,8 @@ const Auth = () => {
                         <Input
                           id="login-email"
                           type="email"
+                          inputMode="email"
+                          enterKeyHint="next"
                           autoComplete="email"
                           autoCapitalize="none"
                           autoCorrect="off"
