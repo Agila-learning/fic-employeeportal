@@ -10,6 +10,8 @@ export interface SuccessStory {
   location: string;
   domain: string;
   motivation_words: string;
+  video_url: string | null;
+  video_path: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -41,7 +43,6 @@ export const useSuccessStories = () => {
     if (user) fetchStories();
   }, [user]);
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel('success_stories_changes')
@@ -52,6 +53,25 @@ export const useSuccessStories = () => {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const uploadVideo = async (file: File): Promise<string | null> => {
+    const ext = file.name.split('.').pop();
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from('success-story-videos')
+      .upload(path, file, { contentType: file.type });
+    if (error) { toast.error('Failed to upload video'); return null; }
+    return path;
+  };
+
+  const deleteVideoFile = async (videoPath: string) => {
+    await supabase.storage.from('success-story-videos').remove([videoPath]);
+  };
+
+  const getVideoPublicUrl = (videoPath: string) => {
+    const { data } = supabase.storage.from('success-story-videos').getPublicUrl(videoPath);
+    return data.publicUrl;
+  };
 
   const addStory = async (story: Omit<SuccessStory, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     if (!user) return;
@@ -82,7 +102,9 @@ export const useSuccessStories = () => {
   };
 
   const deleteStory = async (id: string) => {
+    const story = stories.find(s => s.id === id);
     try {
+      if (story?.video_path) await deleteVideoFile(story.video_path);
       const { error } = await supabase
         .from('success_stories')
         .delete()
@@ -95,5 +117,5 @@ export const useSuccessStories = () => {
     }
   };
 
-  return { stories, isLoading, addStory, updateStory, deleteStory, refetch: fetchStories };
+  return { stories, isLoading, addStory, updateStory, deleteStory, uploadVideo, deleteVideoFile, getVideoPublicUrl, refetch: fetchStories };
 };
