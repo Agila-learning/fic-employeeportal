@@ -684,6 +684,8 @@ export type Database = {
           motivation_words: string
           package: string
           updated_at: string
+          video_path: string | null
+          video_url: string | null
         }
         Insert: {
           candidate_name: string
@@ -695,6 +697,8 @@ export type Database = {
           motivation_words: string
           package: string
           updated_at?: string
+          video_path?: string | null
+          video_url?: string | null
         }
         Update: {
           candidate_name?: string
@@ -706,6 +710,8 @@ export type Database = {
           motivation_words?: string
           package?: string
           updated_at?: string
+          video_path?: string | null
+          video_url?: string | null
         }
         Relationships: []
       }
