@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Profile, UserRole, AppRole } from '@/types';
+import { Profile, AppRole } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProfileUpdateSchema, validateInput } from '@/utils/validation';
+import { employeeService } from '@/api/employeeService';
 
 export interface Employee extends Profile {
   role: AppRole;
@@ -19,45 +19,14 @@ export const useEmployees = () => {
     if (!user || user.role !== 'admin') return;
 
     try {
-      // Get all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      // Get all roles
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*');
-
-      if (rolesError) throw rolesError;
-
-      // Get lead counts per employee
-      const { data: leads, error: leadsError } = await supabase
-        .from('leads')
-        .select('assigned_to');
-
-      if (leadsError) throw leadsError;
-
-      // Combine data
-      const employeesWithData = (profiles || []).map((profile) => {
-        const roleData = roles?.find((r) => r.user_id === profile.user_id);
-        const leadsCount = leads?.filter((l) => l.assigned_to === profile.user_id).length || 0;
-
-        return {
-          ...profile,
-          role: roleData?.role as AppRole || 'employee',
-          leads_count: leadsCount,
-        };
-      });
-
-      setEmployees(employeesWithData);
+      const data = await employeeService.getEmployees();
+      setEmployees(data.map((e: any) => ({
+        ...e,
+        id: e._id,
+        user_id: e._id,
+        leads_count: e.leads_count || 0
+      })));
     } catch (error: any) {
-      if (import.meta.env.DEV) {
-        console.error('[DEV] Error fetching employees:', error);
-      }
       toast.error('Failed to fetch employees');
     } finally {
       setIsLoading(false);
@@ -79,47 +48,29 @@ export const useEmployees = () => {
       return false;
     }
 
-    const validatedData = validation.data;
-
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(validatedData)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
+      await employeeService.updateEmployee(userId, validation.data);
       setEmployees((prev) =>
-        prev.map((e) => (e.user_id === userId ? { ...e, ...validation.data } : e))
+        prev.map((e) => (e.id === userId ? { ...e, ...validation.data } : e))
       );
+      toast.success('Employee updated successfully');
       return true;
     } catch (error: any) {
-      if (import.meta.env.DEV) {
-        console.error('[DEV] Error updating employee:', error);
-      }
-      toast.error(error.message || 'Failed to update employee');
+      toast.error(error.response?.data?.message || 'Failed to update employee');
       return false;
     }
   };
 
   const updateEmployeeRole = async (userId: string, role: AppRole) => {
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
+      await employeeService.updateEmployee(userId, { role });
       setEmployees((prev) =>
-        prev.map((e) => (e.user_id === userId ? { ...e, role } : e))
+        prev.map((e) => (e.id === userId ? { ...e, role } : e))
       );
+      toast.success('Role updated successfully');
       return true;
     } catch (error: any) {
-      if (import.meta.env.DEV) {
-        console.error('[DEV] Error updating role:', error);
-      }
-      toast.error(error.message || 'Failed to update role');
+      toast.error(error.response?.data?.message || 'Failed to update role');
       return false;
     }
   };
@@ -130,29 +81,12 @@ export const useEmployees = () => {
 
   const deleteEmployee = async (userId: string) => {
     try {
-      // Delete user role first
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      if (roleError) throw roleError;
-
-      // Delete profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('user_id', userId);
-
-      if (profileError) throw profileError;
-
-      setEmployees((prev) => prev.filter((e) => e.user_id !== userId));
+      await employeeService.deleteEmployee(userId);
+      setEmployees((prev) => prev.filter((e) => e.id !== userId));
+      toast.success('Employee deleted successfully');
       return true;
     } catch (error: any) {
-      if (import.meta.env.DEV) {
-        console.error('[DEV] Error deleting employee:', error);
-      }
-      toast.error(error.message || 'Failed to delete employee');
+      toast.error(error.response?.data?.message || 'Failed to delete employee');
       return false;
     }
   };
