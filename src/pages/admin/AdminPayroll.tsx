@@ -9,12 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { operationService } from '@/api/operationService';
 import { toast } from 'sonner';
-import { FileText, Download, Eye, Trash2, Users } from 'lucide-react';
+import { FileText, Eye, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PayslipTemplate from '@/components/payroll/PayslipTemplate';
-import { format } from 'date-fns';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -30,78 +29,51 @@ const AdminPayroll = () => {
   const [payslips, setPayslips] = useState<any[]>([]);
   const [viewPayslip, setViewPayslip] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
 
-  // Salary form fields
   const [form, setForm] = useState({
-    designation: '',
-    department: '',
-    basicSalary: '',
-    hra: '',
-    conveyanceAllowance: '',
-    medicalAllowance: '',
-    specialAllowance: '',
-    otherEarnings: '',
-    pfEmployee: '',
-    pfEmployer: '',
-    esiEmployee: '',
-    esiEmployer: '',
-    professionalTax: '',
-    tds: '',
-    otherDeductions: '',
-    ctc: '',
-    bankName: '',
-    bankAccountNumber: '',
-    panNumber: '',
-    uanNumber: '',
-    totalWorkingDays: '30',
-    daysWorked: '30',
-    leaveDays: '0',
+    designation: '', department: '', basicSalary: '', hra: '',
+    conveyanceAllowance: '', medicalAllowance: '', specialAllowance: '',
+    otherEarnings: '', pfEmployee: '', pfEmployer: '', esiEmployee: '',
+    esiEmployer: '', professionalTax: '', tds: '', otherDeductions: '',
+    ctc: '', bankName: '', bankAccountNumber: '', panNumber: '',
+    uanNumber: '', totalWorkingDays: '30', daysWorked: '30', leaveDays: '0',
   });
 
   const activeEmployees = employees.filter(e => e.is_active !== false && e.role === 'employee');
 
-  // Auto-populate form from last payslip when employee is selected
   const handleEmployeeSelect = async (userId: string) => {
     setSelectedEmployee(userId);
-    const { data } = await supabase
-      .from('payslips')
-      .select('*')
-      .eq('user_id', userId)
-      .order('year', { ascending: false })
-      .order('month', { ascending: false })
-      .limit(1);
-
-    if (data && data.length > 0) {
-      const ps = data[0];
-      setForm({
-        designation: ps.designation || '',
-        department: ps.department || '',
-        basicSalary: ps.basic_salary?.toString() || '',
-        hra: ps.hra?.toString() || '',
-        conveyanceAllowance: ps.conveyance_allowance?.toString() || '',
-        medicalAllowance: ps.medical_allowance?.toString() || '',
-        specialAllowance: ps.special_allowance?.toString() || '',
-        otherEarnings: ps.other_earnings?.toString() || '',
-        pfEmployee: ps.pf_employee?.toString() || '',
-        pfEmployer: ps.pf_employer?.toString() || '',
-        esiEmployee: ps.esi_employee?.toString() || '',
-        esiEmployer: ps.esi_employer?.toString() || '',
-        professionalTax: ps.professional_tax?.toString() || '',
-        tds: ps.tds?.toString() || '',
-        otherDeductions: ps.other_deductions?.toString() || '',
-        ctc: ps.ctc?.toString() || '',
-        bankName: ps.bank_name || '',
-        bankAccountNumber: ps.bank_account_number || '',
-        panNumber: ps.pan_number || '',
-        uanNumber: ps.uan_number || '',
-        totalWorkingDays: ps.total_working_days?.toString() || '30',
-        daysWorked: ps.days_worked?.toString() || '30',
-        leaveDays: ps.leave_days?.toString() || '0',
-      });
-      toast.info('Previous payslip details loaded automatically');
-    } else {
-      // Reset form for new employee
+    try {
+      const data = await operationService.getLatestPayslip(userId);
+      if (data) {
+        setForm({
+          designation: data.designation || '',
+          department: data.department || '',
+          basicSalary: data.basic_salary?.toString() || '',
+          hra: data.hra?.toString() || '',
+          conveyanceAllowance: data.conveyance_allowance?.toString() || '',
+          medicalAllowance: data.medical_allowance?.toString() || '',
+          specialAllowance: data.special_allowance?.toString() || '',
+          otherEarnings: data.other_earnings?.toString() || '',
+          pfEmployee: data.pf_employee?.toString() || '',
+          pfEmployer: data.pf_employer?.toString() || '',
+          esiEmployee: data.esi_employee?.toString() || '',
+          esiEmployer: data.esi_employer?.toString() || '',
+          professionalTax: data.professional_tax?.toString() || '',
+          tds: data.tds?.toString() || '',
+          otherDeductions: data.other_deductions?.toString() || '',
+          ctc: data.ctc?.toString() || '',
+          bankName: data.bank_name || '',
+          bankAccountNumber: data.bank_account_number || '',
+          panNumber: data.pan_number || '',
+          uanNumber: data.uan_number || '',
+          totalWorkingDays: data.total_working_days?.toString() || '30',
+          daysWorked: data.days_worked?.toString() || '30',
+          leaveDays: data.leave_days?.toString() || '0',
+        });
+        toast.info('Previous payslip details loaded');
+      }
+    } catch (error) {
       setForm({
         designation: '', department: '', basicSalary: '', hra: '',
         conveyanceAllowance: '', medicalAllowance: '', specialAllowance: '',
@@ -114,12 +86,12 @@ const AdminPayroll = () => {
   };
 
   const fetchPayslips = async () => {
-    const { data, error } = await supabase
-      .from('payslips')
-      .select('*')
-      .order('year', { ascending: false })
-      .order('month', { ascending: false });
-    if (!error && data) setPayslips(data);
+    try {
+      const data = await operationService.getAllPayslips();
+      setPayslips(data || []);
+    } catch (error) {
+      toast.error('Failed to fetch payslips');
+    }
   };
 
   useEffect(() => { fetchPayslips(); }, []);
@@ -128,35 +100,30 @@ const AdminPayroll = () => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // Auto-calculate
-  const basicSalary = parseFloat(form.basicSalary) || 0;
-  const hra = parseFloat(form.hra) || 0;
-  const conveyance = parseFloat(form.conveyanceAllowance) || 0;
-  const medical = parseFloat(form.medicalAllowance) || 0;
-  const special = parseFloat(form.specialAllowance) || 0;
-  const otherEarn = parseFloat(form.otherEarnings) || 0;
-  const grossSalary = basicSalary + hra + conveyance + medical + special + otherEarn;
+  const basicSalaryValue = parseFloat(form.basicSalary) || 0;
+  const hraValue = parseFloat(form.hra) || 0;
+  const conveyanceValue = parseFloat(form.conveyanceAllowance) || 0;
+  const medicalValue = parseFloat(form.medicalAllowance) || 0;
+  const specialValue = parseFloat(form.specialAllowance) || 0;
+  const otherEarnValue = parseFloat(form.otherEarnings) || 0;
+  const grossSalary = basicSalaryValue + hraValue + conveyanceValue + medicalValue + specialValue + otherEarnValue;
 
   const pfEmp = parseFloat(form.pfEmployee) || 0;
-  const pfEr = parseFloat(form.pfEmployer) || 0;
-  const esiEmp = parseFloat(form.esiEmployee) || 0;
-  const esiEr = parseFloat(form.esiEmployer) || 0;
   const pt = parseFloat(form.professionalTax) || 0;
   const tds = parseFloat(form.tds) || 0;
+  const esiEmp = parseFloat(form.esiEmployee) || 0;
   const otherDed = parseFloat(form.otherDeductions) || 0;
-  const totalDeductions = pfEmp + esiEmp + pt + tds + otherDed;
+  const totalDeductions = pfEmp + pt + tds + esiEmp + otherDed;
   const netSalary = grossSalary - totalDeductions;
 
   const handleGenerate = async () => {
     if (!selectedEmployee) { toast.error('Please select an employee'); return; }
-    if (grossSalary <= 0) { toast.error('Please enter salary details'); return; }
-
-    const emp = activeEmployees.find(e => e.user_id === selectedEmployee);
+    const emp = activeEmployees.find(e => e.user_id === selectedEmployee || (e as any)._id === selectedEmployee);
     if (!emp) return;
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from('payslips').upsert({
+      await operationService.createPayslip({
         user_id: selectedEmployee,
         employee_name: emp.name,
         employee_id: emp.employee_id || '',
@@ -164,16 +131,16 @@ const AdminPayroll = () => {
         designation: form.designation,
         month: parseInt(month),
         year: parseInt(year),
-        basic_salary: basicSalary,
-        hra,
-        conveyance_allowance: conveyance,
-        medical_allowance: medical,
-        special_allowance: special,
-        other_earnings: otherEarn,
+        basic_salary: basicSalaryValue,
+        hra: hraValue,
+        conveyance_allowance: conveyanceValue,
+        medical_allowance: medicalValue,
+        special_allowance: specialValue,
+        other_earnings: otherEarnValue,
         pf_employee: pfEmp,
-        pf_employer: pfEr,
+        pf_employer: parseFloat(form.pfEmployer) || 0,
         esi_employee: esiEmp,
-        esi_employer: esiEr,
+        esi_employer: parseFloat(form.esiEmployer) || 0,
         professional_tax: pt,
         tds,
         other_deductions: otherDed,
@@ -188,346 +155,131 @@ const AdminPayroll = () => {
         total_working_days: parseInt(form.totalWorkingDays) || 30,
         days_worked: parseInt(form.daysWorked) || 30,
         leave_days: parseInt(form.leaveDays) || 0,
-        generated_by: user!.id,
-      }, { onConflict: 'user_id,month,year' });
-
-      if (error) throw error;
-      toast.success(`Payslip generated for ${emp.name} - ${MONTHS[parseInt(month) - 1]} ${year}`);
+        generated_by: user?.id
+      });
+      toast.success('Payslip generated');
       fetchPayslips();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to generate payslip');
+      toast.error(err.response?.data?.message || 'Failed to generate');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleBulkGenerate = async () => {
-    if (!user) return;
-    setIsBulkGenerating(true);
-    let generated = 0;
-    let skipped = 0;
-
-    try {
-      for (const emp of activeEmployees) {
-        // Get latest payslip for this employee
-        const { data } = await supabase
-          .from('payslips')
-          .select('*')
-          .eq('user_id', emp.user_id)
-          .order('year', { ascending: false })
-          .order('month', { ascending: false })
-          .limit(1);
-
-        if (!data || data.length === 0) {
-          skipped++;
-          continue;
-        }
-
-        const ps = data[0];
-
-        // Check if payslip already exists for this month/year
-        const { data: existing } = await supabase
-          .from('payslips')
-          .select('id')
-          .eq('user_id', emp.user_id)
-          .eq('month', parseInt(month))
-          .eq('year', parseInt(year))
-          .limit(1);
-
-        if (existing && existing.length > 0) {
-          skipped++;
-          continue;
-        }
-
-        const gross = (ps.basic_salary || 0) + (ps.hra || 0) + (ps.conveyance_allowance || 0) +
-          (ps.medical_allowance || 0) + (ps.special_allowance || 0) + (ps.other_earnings || 0);
-        const deductions = (ps.pf_employee || 0) + (ps.esi_employee || 0) +
-          (ps.professional_tax || 0) + (ps.tds || 0) + (ps.other_deductions || 0);
-
-        const { error } = await supabase.from('payslips').insert({
-          user_id: emp.user_id,
-          employee_name: emp.name,
-          employee_id: emp.employee_id || '',
-          department: ps.department,
-          designation: ps.designation,
-          month: parseInt(month),
-          year: parseInt(year),
-          basic_salary: ps.basic_salary,
-          hra: ps.hra,
-          conveyance_allowance: ps.conveyance_allowance,
-          medical_allowance: ps.medical_allowance,
-          special_allowance: ps.special_allowance,
-          other_earnings: ps.other_earnings,
-          pf_employee: ps.pf_employee,
-          pf_employer: ps.pf_employer,
-          esi_employee: ps.esi_employee,
-          esi_employer: ps.esi_employer,
-          professional_tax: ps.professional_tax,
-          tds: ps.tds,
-          other_deductions: ps.other_deductions,
-          gross_salary: gross,
-          total_deductions: deductions,
-          net_salary: gross - deductions,
-          ctc: ps.ctc,
-          bank_name: ps.bank_name,
-          bank_account_number: ps.bank_account_number,
-          pan_number: ps.pan_number,
-          uan_number: ps.uan_number,
-          total_working_days: parseInt(form.totalWorkingDays) || 30,
-          days_worked: parseInt(form.daysWorked) || 30,
-          leave_days: parseInt(form.leaveDays) || 0,
-          generated_by: user.id,
-        });
-
-        if (!error) generated++;
-      }
-
-      if (generated > 0) {
-        toast.success(`Bulk generated ${generated} payslip(s) for ${MONTHS[parseInt(month) - 1]} ${year}`);
-        fetchPayslips();
-      }
-      if (skipped > 0) {
-        toast.info(`${skipped} employee(s) skipped (no previous data or already exists)`);
-      }
-      if (generated === 0 && skipped === 0) {
-        toast.warning('No active employees found');
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'Bulk generation failed');
-    } finally {
-      setIsBulkGenerating(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('payslips').delete().eq('id', id);
-    if (!error) { toast.success('Payslip deleted'); fetchPayslips(); }
-    else toast.error('Failed to delete');
-  };
-
-  const getEmployeeName = (userId: string) => {
-    return employees.find(e => e.user_id === userId)?.name || 'Unknown';
+    try {
+      await operationService.deletePayslip(id);
+      toast.success('Deleted');
+      fetchPayslips();
+    } catch (error) {
+      toast.error('Failed to delete');
+    }
   };
 
   return (
     <DashboardLayout requiredRole="admin">
       <div className="space-y-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Payroll Management</h1>
-          <p className="text-sm text-muted-foreground">Generate and manage employee payslips</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">Payroll Management</h1>
+          <p className="text-sm text-muted-foreground">Manage employee salaries and payslips</p>
         </div>
 
-        {/* Generate Payslip Form */}
-        <Card>
+        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Generate Payslip</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5 text-primary" />
+              Generate Payslip
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Employee & Period Selection */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>Select Employee *</Label>
+                <Label>Select Employee</Label>
                 <Select value={selectedEmployee} onValueChange={handleEmployeeSelect}>
-                  <SelectTrigger><SelectValue placeholder="Choose employee" /></SelectTrigger>
+                  <SelectTrigger className="bg-background/50 border-border/50"><SelectValue placeholder="Choose employee" /></SelectTrigger>
                   <SelectContent>
                     {activeEmployees.map(emp => (
-                      <SelectItem key={emp.user_id} value={emp.user_id}>
-                        {emp.name} {emp.employee_id ? `(${emp.employee_id})` : ''}
+                      <SelectItem key={emp.user_id || (emp as any)._id} value={emp.user_id || (emp as any)._id}>
+                        {emp.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Month *</Label>
+                <Label>Month</Label>
                 <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map((m, i) => (
-                      <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="bg-background/50 border-border/50"><SelectValue /></SelectTrigger>
+                  <SelectContent>{MONTHS.map((m, i) => (<SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>))}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Year *</Label>
-                <Input type="number" value={year} onChange={e => setYear(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>CTC (Annual)</Label>
-                <Input type="number" placeholder="₹" value={form.ctc} onChange={e => handleFieldChange('ctc', e.target.value)} />
-              </div>
-            </div>
-
-            {/* Employee Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Input value={form.department} onChange={e => handleFieldChange('department', e.target.value)} placeholder="e.g. BDA, HR" />
-              </div>
-              <div className="space-y-2">
-                <Label>Designation</Label>
-                <Input value={form.designation} onChange={e => handleFieldChange('designation', e.target.value)} placeholder="e.g. Executive" />
-              </div>
-              <div className="space-y-2">
-                <Label>Bank Name</Label>
-                <Input value={form.bankName} onChange={e => handleFieldChange('bankName', e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Bank Account No.</Label>
-                <Input value={form.bankAccountNumber} onChange={e => handleFieldChange('bankAccountNumber', e.target.value)} />
+                <Label>Year</Label>
+                <Input type="number" value={year} onChange={e => setYear(e.target.value)} className="bg-background/50 border-border/50" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>PAN Number</Label>
-                <Input value={form.panNumber} onChange={e => handleFieldChange('panNumber', e.target.value)} />
+                <Label>Basic Salary</Label>
+                <Input type="number" value={form.basicSalary} onChange={e => handleFieldChange('basicSalary', e.target.value)} placeholder="₹" className="bg-background/50 border-border/50" />
               </div>
               <div className="space-y-2">
-                <Label>UAN Number</Label>
-                <Input value={form.uanNumber} onChange={e => handleFieldChange('uanNumber', e.target.value)} />
+                <Label>HRA</Label>
+                <Input type="number" value={form.hra} onChange={e => handleFieldChange('hra', e.target.value)} placeholder="₹" className="bg-background/50 border-border/50" />
               </div>
               <div className="space-y-2">
-                <Label>Total Working Days</Label>
-                <Input type="number" value={form.totalWorkingDays} onChange={e => handleFieldChange('totalWorkingDays', e.target.value)} />
+                <Label>Conveyance</Label>
+                <Input type="number" value={form.conveyanceAllowance} onChange={e => handleFieldChange('conveyanceAllowance', e.target.value)} placeholder="₹" className="bg-background/50 border-border/50" />
               </div>
               <div className="space-y-2">
-                <Label>Days Worked</Label>
-                <Input type="number" value={form.daysWorked} onChange={e => handleFieldChange('daysWorked', e.target.value)} />
+                <Label>Medical</Label>
+                <Input type="number" value={form.medicalAllowance} onChange={e => handleFieldChange('medicalAllowance', e.target.value)} placeholder="₹" className="bg-background/50 border-border/50" />
               </div>
             </div>
 
-            {/* Earnings */}
-            <div>
-              <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-3">💰 Earnings</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Basic Salary *</Label>
-                  <Input type="number" placeholder="₹" value={form.basicSalary} onChange={e => handleFieldChange('basicSalary', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>HRA</Label>
-                  <Input type="number" placeholder="₹" value={form.hra} onChange={e => handleFieldChange('hra', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Conveyance Allowance</Label>
-                  <Input type="number" placeholder="₹" value={form.conveyanceAllowance} onChange={e => handleFieldChange('conveyanceAllowance', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Medical Allowance</Label>
-                  <Input type="number" placeholder="₹" value={form.medicalAllowance} onChange={e => handleFieldChange('medicalAllowance', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Special Allowance</Label>
-                  <Input type="number" placeholder="₹" value={form.specialAllowance} onChange={e => handleFieldChange('specialAllowance', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Other Earnings</Label>
-                  <Input type="number" placeholder="₹" value={form.otherEarnings} onChange={e => handleFieldChange('otherEarnings', e.target.value)} />
-                </div>
-              </div>
-              <p className="mt-2 text-sm font-medium text-emerald-600">Gross Salary: ₹{grossSalary.toLocaleString('en-IN')}</p>
-            </div>
-
-            {/* Deductions */}
-            <div>
-              <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-3">📉 Deductions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>PF (Employee)</Label>
-                  <Input type="number" placeholder="₹" value={form.pfEmployee} onChange={e => handleFieldChange('pfEmployee', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>PF (Employer)</Label>
-                  <Input type="number" placeholder="₹" value={form.pfEmployer} onChange={e => handleFieldChange('pfEmployer', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>ESI (Employee)</Label>
-                  <Input type="number" placeholder="₹" value={form.esiEmployee} onChange={e => handleFieldChange('esiEmployee', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>ESI (Employer)</Label>
-                  <Input type="number" placeholder="₹" value={form.esiEmployer} onChange={e => handleFieldChange('esiEmployer', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Professional Tax</Label>
-                  <Input type="number" placeholder="₹" value={form.professionalTax} onChange={e => handleFieldChange('professionalTax', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>TDS</Label>
-                  <Input type="number" placeholder="₹" value={form.tds} onChange={e => handleFieldChange('tds', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Other Deductions</Label>
-                  <Input type="number" placeholder="₹" value={form.otherDeductions} onChange={e => handleFieldChange('otherDeductions', e.target.value)} />
-                </div>
-              </div>
-              <p className="mt-2 text-sm font-medium text-red-600">Total Deductions: ₹{totalDeductions.toLocaleString('en-IN')}</p>
-            </div>
-
-            {/* Net Salary */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-primary/10 border">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
               <div>
-                <p className="text-lg font-bold text-foreground">Net Salary: ₹{netSalary.toLocaleString('en-IN')}</p>
-                <p className="text-xs text-muted-foreground">Gross: ₹{grossSalary.toLocaleString('en-IN')} - Deductions: ₹{totalDeductions.toLocaleString('en-IN')}</p>
+                <p className="text-lg font-bold text-primary font-heading">Net Salary: ₹{netSalary.toLocaleString('en-IN')}</p>
+                <p className="text-xs text-muted-foreground">Gross: ₹{grossSalary.toLocaleString('en-IN')} - Ded: ₹{totalDeductions.toLocaleString('en-IN')}</p>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={handleGenerate} disabled={isSubmitting} className="gradient-primary">
-                  <FileText className="h-4 w-4 mr-2" />
-                  {isSubmitting ? 'Generating...' : 'Generate Payslip'}
-                </Button>
-                <Button onClick={handleBulkGenerate} disabled={isBulkGenerating} variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  {isBulkGenerating ? 'Generating All...' : 'Bulk Generate All'}
-                </Button>
-              </div>
+              <Button onClick={handleGenerate} disabled={isSubmitting} className="gradient-primary shadow-lg shadow-primary/20 min-w-[140px]">
+                {isSubmitting ? 'Generating...' : 'Generate Payslip'}
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Generated Payslips List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Generated Payslips</CardTitle>
-          </CardHeader>
+        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader><CardTitle className="text-lg">Generated Payslips</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>S.No</TableHead>
+                  <TableRow className="border-border/50">
                     <TableHead>Employee</TableHead>
-                    <TableHead>Month/Year</TableHead>
-                    <TableHead>Gross</TableHead>
-                    <TableHead>Deductions</TableHead>
+                    <TableHead>Period</TableHead>
                     <TableHead>Net Salary</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payslips.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No payslips generated yet</TableCell></TableRow>
-                  ) : payslips.map((ps, idx) => (
-                    <TableRow key={ps.id}>
-                      <TableCell>{idx + 1}</TableCell>
+                  {payslips.map(ps => (
+                    <TableRow key={ps.id || ps._id} className="border-border/50 group">
                       <TableCell className="font-medium">{ps.employee_name}</TableCell>
-                      <TableCell><Badge variant="outline">{MONTHS[ps.month - 1]} {ps.year}</Badge></TableCell>
-                      <TableCell>₹{Number(ps.gross_salary).toLocaleString('en-IN')}</TableCell>
-                      <TableCell className="text-red-600">₹{Number(ps.total_deductions).toLocaleString('en-IN')}</TableCell>
+                      <TableCell><Badge variant="secondary" className="bg-primary/5 text-primary hover:bg-primary/10 transition-colors border-none">{MONTHS[ps.month - 1]} {ps.year}</Badge></TableCell>
                       <TableCell className="font-semibold text-emerald-600">₹{Number(ps.net_salary).toLocaleString('en-IN')}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setViewPayslip(ps)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDelete(ps.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setViewPayslip(ps)}><Eye className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(ps.id || ps._id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {payslips.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground">No payslips found</TableCell></TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -535,13 +287,20 @@ const AdminPayroll = () => {
         </Card>
       </div>
 
-      {/* View Payslip Dialog */}
       <Dialog open={!!viewPayslip} onOpenChange={() => setViewPayslip(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Payslip Preview</DialogTitle>
-          </DialogHeader>
-          {viewPayslip && <PayslipTemplate payslip={viewPayslip} />}
+        <DialogContent className="max-w-4xl border-none p-0 overflow-hidden shadow-2xl">
+          <div className="p-6 bg-card">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="text-xl font-heading">Payslip Preview</DialogTitle>
+            </DialogHeader>
+            <div className="border rounded-xl overflow-hidden shadow-inner bg-slate-50">
+              {viewPayslip && <PayslipTemplate payslip={viewPayslip} />}
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setViewPayslip(null)}>Close</Button>
+              <Button className="gradient-primary" onClick={() => window.print()}>Download PDF</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
