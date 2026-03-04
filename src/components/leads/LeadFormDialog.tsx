@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Lead, LeadStatus, LeadSource, PaymentStage, InterestedDomain, STATUS_OPTIONS, STATUS_OPTIONS_ADMIN, SOURCE_OPTIONS, PAYMENT_STAGE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
 import { leadService } from '@/api/leadService';
 import { useLeads, useLeadComments, useLeadStatusHistory } from '@/hooks/useLeads';
 import { useAuth } from '@/contexts/AuthContext';
