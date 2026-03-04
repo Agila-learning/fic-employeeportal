@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Lead, LeadStatus, LeadSource, PaymentStage, InterestedDomain, STATUS_OPTIONS, STATUS_OPTIONS_ADMIN, SOURCE_OPTIONS, PAYMENT_STAGE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
-import { useLeads, useLeadComments, useLeadStatusHistory } from '@/hooks/useLeads';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { leadService } from '@/api/leadService';
 import {
   Dialog,
   DialogContent,
@@ -38,27 +36,13 @@ interface LeadFormDialogProps {
 }
 
 const generateCandidateId = async (): Promise<string> => {
-  const prefix = 'FIC';
-  let candidateId = '';
-  let isUnique = false;
-  
-  while (!isUnique) {
-    const number = Math.floor(Math.random() * 90000) + 10000;
-    candidateId = `${prefix}${number}`;
-    
-    // Check if this ID already exists
-    const { data } = await supabase
-      .from('leads')
-      .select('id')
-      .eq('candidate_id', candidateId)
-      .maybeSingle();
-    
-    if (!data) {
-      isUnique = true;
-    }
+  try {
+    const data = await leadService.generateUniqueId();
+    return data.candidateId;
+  } catch (error) {
+    console.error('Error generating candidate ID:', error);
+    return 'FIC' + Math.floor(Math.random() * 90000 + 10000);
   }
-  
-  return candidateId;
 };
 
 const REJECTION_STATUSES: LeadStatus[] = ['rejected', 'not_interested', 'not_interested_paid', 'different_domain'];
@@ -171,23 +155,18 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
 
   // Store only the file path in DB - signed URLs will be generated on-demand for viewing
   const uploadFile = async (
-    file: File, 
-    bucket: string, 
+    file: File,
+    bucket: string,
     fileType: 'resume' | 'paymentSlip',
     existingPath?: string
   ): Promise<string | null> => {
     try {
       // Prepare file with validation and compression
       const prepared = await prepareFileForUpload(file, fileType, formData.candidate_id);
-      
+
       if (!prepared.success || !prepared.file) {
         toast.error(prepared.error || 'File preparation failed');
         return null;
-      }
-
-      // Delete old file if replacing
-      if (existingPath) {
-        await deleteOldFile(existingPath);
       }
 
       // Show compression info if applicable
@@ -195,25 +174,13 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
         toast.info(prepared.compressionInfo);
       }
 
-      const fileToUpload = prepared.file;
-      const fileExt = fileToUpload.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${user?.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, fileToUpload);
-
-      if (uploadError) throw uploadError;
-
-      // Return path in format "bucket:path" to be stored in DB
-      // Both buckets are private - signed URLs generated on-demand when viewing
-      return `${bucket}:${filePath}`;
+      const response = await leadService.uploadFile(prepared.file, bucket, formData.candidate_id);
+      return response.fileUrl;
     } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error(`[DEV] Error uploading to ${bucket}:`, error);
       }
-      toast.error(`Failed to upload file: ${error.message}`);
+      toast.error(`Failed to upload file: ${error.response?.data?.message || error.message}`);
       return null;
     }
   };
@@ -221,12 +188,12 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.phone) {
       toast.error('Please fill in all required fields');
       return;
     }
-    
+
     if (formData.email && !formData.email.includes('@')) {
       toast.error('Please enter a valid email address');
       return;
@@ -236,17 +203,17 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     if (formData.status === 'follow_up' && mode === 'edit' && lead) {
       const isMaxAttempts = (lead.followup_count || 0) >= 6;
       const followupDateExpired = formData.followup_date && new Date(formData.followup_date) < new Date();
-      
+
       if (isMaxAttempts) {
         toast.error('Maximum follow-up attempts reached. Please convert or reject this lead.');
         return;
       }
-      
+
       if (followupDateExpired) {
         toast.error('Follow-up date has expired. Please select a future date.');
         return;
       }
-      
+
       if (!formData.followup_date) {
         toast.error('Please select a follow-up date');
         return;
@@ -260,8 +227,8 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
     }
 
     // Check if payment stage (initial or full) requires payment slip
-    if ((formData.payment_stage === 'initial_payment_done' || formData.payment_stage === 'full_payment_done') && 
-        !formData.payment_slip_url && !paymentSlipFile) {
+    if ((formData.payment_stage === 'initial_payment_done' || formData.payment_stage === 'full_payment_done') &&
+      !formData.payment_slip_url && !paymentSlipFile) {
       toast.error('Payment slip/screenshot is required for payment stages');
       return;
     }
@@ -345,7 +312,7 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
-    
+
     const result = await addComment(newComment);
     if (result) {
       setNewComment('');
@@ -379,8 +346,8 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
         return;
       }
       setPaymentSlipFile(file);
-      const compressionNote = file.type.startsWith('image/') && file.size > 250 * 1024 
-        ? ' (will be compressed)' 
+      const compressionNote = file.type.startsWith('image/') && file.size > 250 * 1024
+        ? ' (will be compressed)'
         : '';
       toast.success(`Payment slip selected: ${file.name} (${formatFileSize(file.size)})${compressionNote}`);
     }
@@ -408,158 +375,158 @@ const LeadFormDialog = ({ open, onOpenChange, lead, mode, onSave }: LeadFormDial
             </DialogTitle>
           </DialogHeader>
 
-        {(mode === 'view' || mode === 'edit') && lead ? (
-          <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="comments" className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Comments ({comments.length})
-              </TabsTrigger>
-              <TabsTrigger value="history" className="gap-2">
-                <History className="h-4 w-4" />
-                History ({history.length})
-              </TabsTrigger>
-            </TabsList>
+          {(mode === 'view' || mode === 'edit') && lead ? (
+            <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="comments" className="gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Comments ({comments.length})
+                </TabsTrigger>
+                <TabsTrigger value="history" className="gap-2">
+                  <History className="h-4 w-4" />
+                  History ({history.length})
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="details" className="flex-1 overflow-auto mt-2">
-              <ScrollArea className="h-[55vh] sm:h-[58vh] md:h-[62vh] pr-2 sm:pr-3 md:pr-4">
-                <LeadForm
-                  formData={formData}
-                  setFormData={setFormData}
-                  isViewMode={isViewMode}
-                  isAdmin={isAdmin}
-                  mode={mode}
-                  handleSubmit={handleSubmit}
-                  handleResumeSelect={handleResumeSelect}
-                  handlePaymentSlipSelect={handlePaymentSlipSelect}
-                  resumeFile={resumeFile}
-                  paymentSlipFile={paymentSlipFile}
-                  isSubmitting={isSubmitting}
-                  isUploading={isUploading}
-                  onOpenChange={onOpenChange}
-                  showRejectionWarning={showRejectionWarning}
-                  rejectionReason={rejectionReason}
-                  setRejectionReason={setRejectionReason}
-                  lead={lead}
-                />
-              </ScrollArea>
-            </TabsContent>
+              <TabsContent value="details" className="flex-1 overflow-auto mt-2">
+                <ScrollArea className="h-[55vh] sm:h-[58vh] md:h-[62vh] pr-2 sm:pr-3 md:pr-4">
+                  <LeadForm
+                    formData={formData}
+                    setFormData={setFormData}
+                    isViewMode={isViewMode}
+                    isAdmin={isAdmin}
+                    mode={mode}
+                    handleSubmit={handleSubmit}
+                    handleResumeSelect={handleResumeSelect}
+                    handlePaymentSlipSelect={handlePaymentSlipSelect}
+                    resumeFile={resumeFile}
+                    paymentSlipFile={paymentSlipFile}
+                    isSubmitting={isSubmitting}
+                    isUploading={isUploading}
+                    onOpenChange={onOpenChange}
+                    showRejectionWarning={showRejectionWarning}
+                    rejectionReason={rejectionReason}
+                    setRejectionReason={setRejectionReason}
+                    lead={lead}
+                  />
+                </ScrollArea>
+              </TabsContent>
 
-            <TabsContent value="comments" className="flex-1 overflow-hidden flex flex-col">
-              <div className="flex-1 overflow-auto">
-                <ScrollArea className="h-[50vh]">
-                  {commentsLoading ? (
+              <TabsContent value="comments" className="flex-1 overflow-hidden flex flex-col">
+                <div className="flex-1 overflow-auto">
+                  <ScrollArea className="h-[50vh]">
+                    {commentsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      </div>
+                    ) : comments.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">No comments yet</p>
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        {comments.map((comment) => (
+                          <div key={comment.id} className="rounded-lg border border-border bg-muted/30 p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">{comment.user_name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(comment.created_at), 'MMM d, yyyy h:mm a')}
+                              </span>
+                            </div>
+                            <p className="text-sm">{comment.comment}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+
+                {/* Add Comment */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Add a comment..."
+                      rows={2}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleAddComment} size="icon" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 self-end">
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="history" className="flex-1 overflow-auto">
+                <ScrollArea className="h-[60vh]">
+                  {historyLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     </div>
-                  ) : comments.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No comments yet</p>
+                  ) : history.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No status changes recorded</p>
                   ) : (
                     <div className="space-y-4 p-4">
-                      {comments.map((comment) => (
-                        <div key={comment.id} className="rounded-lg border border-border bg-muted/30 p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-sm">{comment.user_name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(comment.created_at), 'MMM d, yyyy h:mm a')}
-                            </span>
+                      {history.map((item, index) => (
+                        <div key={item.id} className="relative flex gap-4">
+                          {index < history.length - 1 && (
+                            <div className="absolute left-[17px] top-8 bottom-0 w-0.5 bg-border" />
+                          )}
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 z-10">
+                            <Clock className="h-4 w-4 text-primary" />
                           </div>
-                          <p className="text-sm">{comment.comment}</p>
+                          <div className="flex-1 rounded-lg border border-border bg-card p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">{item.changed_by_name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
+                              </span>
+                            </div>
+                            <p className="text-sm">
+                              {item.old_status ? (
+                                <>
+                                  Changed status from <span className="font-medium">{getStatusLabel(item.old_status)}</span> to{' '}
+                                  <span className="font-medium text-primary">{getStatusLabel(item.new_status)}</span>
+                                </>
+                              ) : (
+                                <>
+                                  Lead created with status <span className="font-medium text-primary">{getStatusLabel(item.new_status)}</span>
+                                </>
+                              )}
+                            </p>
+                            {item.notes && <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>}
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </ScrollArea>
-              </div>
-              
-              {/* Add Comment */}
-              <div className="border-t border-border pt-4 mt-4">
-                <div className="flex gap-2">
-                  <Textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    rows={2}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleAddComment} size="icon" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 self-end">
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="history" className="flex-1 overflow-auto">
-              <ScrollArea className="h-[60vh]">
-                {historyLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  </div>
-                ) : history.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No status changes recorded</p>
-                ) : (
-                  <div className="space-y-4 p-4">
-                    {history.map((item, index) => (
-                      <div key={item.id} className="relative flex gap-4">
-                        {index < history.length - 1 && (
-                          <div className="absolute left-[17px] top-8 bottom-0 w-0.5 bg-border" />
-                        )}
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 z-10">
-                          <Clock className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1 rounded-lg border border-border bg-card p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-sm">{item.changed_by_name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
-                            </span>
-                          </div>
-                          <p className="text-sm">
-                            {item.old_status ? (
-                              <>
-                                Changed status from <span className="font-medium">{getStatusLabel(item.old_status)}</span> to{' '}
-                                <span className="font-medium text-primary">{getStatusLabel(item.new_status)}</span>
-                              </>
-                            ) : (
-                              <>
-                                Lead created with status <span className="font-medium text-primary">{getStatusLabel(item.new_status)}</span>
-                              </>
-                            )}
-                          </p>
-                          {item.notes && <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <ScrollArea className="h-[55vh] sm:h-[58vh] md:h-[62vh] pr-2 sm:pr-3 md:pr-4">
-            <LeadForm
-              formData={formData}
-              setFormData={setFormData}
-              isViewMode={false}
-              isAdmin={isAdmin}
-              mode={mode}
-              handleSubmit={handleSubmit}
-              handleResumeSelect={handleResumeSelect}
-              handlePaymentSlipSelect={handlePaymentSlipSelect}
-              resumeFile={resumeFile}
-              paymentSlipFile={paymentSlipFile}
-              isSubmitting={isSubmitting}
-              isUploading={isUploading}
-              onOpenChange={onOpenChange}
-              showRejectionWarning={false}
-              rejectionReason=""
-              setRejectionReason={() => {}}
-            />
-          </ScrollArea>
-        )}
-      </DialogContent>
-    </Dialog>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <ScrollArea className="h-[55vh] sm:h-[58vh] md:h-[62vh] pr-2 sm:pr-3 md:pr-4">
+              <LeadForm
+                formData={formData}
+                setFormData={setFormData}
+                isViewMode={false}
+                isAdmin={isAdmin}
+                mode={mode}
+                handleSubmit={handleSubmit}
+                handleResumeSelect={handleResumeSelect}
+                handlePaymentSlipSelect={handlePaymentSlipSelect}
+                resumeFile={resumeFile}
+                paymentSlipFile={paymentSlipFile}
+                isSubmitting={isSubmitting}
+                isUploading={isUploading}
+                onOpenChange={onOpenChange}
+                showRejectionWarning={false}
+                rejectionReason=""
+                setRejectionReason={() => { }}
+              />
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -584,18 +551,18 @@ interface LeadFormProps {
   lead?: Lead;
 }
 
-const LeadForm = ({ 
-  formData, 
-  setFormData, 
-  isViewMode, 
+const LeadForm = ({
+  formData,
+  setFormData,
+  isViewMode,
   isAdmin,
-  mode, 
-  handleSubmit, 
+  mode,
+  handleSubmit,
   handleResumeSelect,
   handlePaymentSlipSelect,
   resumeFile,
   paymentSlipFile,
-  isSubmitting, 
+  isSubmitting,
   isUploading,
   onOpenChange,
   showRejectionWarning,
@@ -741,11 +708,11 @@ const LeadForm = ({
         <Select
           value={formData.status}
           onValueChange={(value: LeadStatus) => {
-            setFormData((prev: any) => ({ 
-              ...prev, 
+            setFormData((prev: any) => ({
+              ...prev,
               status: value,
               // Reset payment stage when changing away from converted
-              payment_stage: value === 'converted' || value === 'success' ? prev.payment_stage : null 
+              payment_stage: value === 'converted' || value === 'success' ? prev.payment_stage : null
             }));
           }}
           disabled={isViewMode || formData.status === 'success'}
@@ -794,11 +761,10 @@ const LeadForm = ({
             type="button"
             disabled={isViewMode}
             onClick={() => setFormData((prev: any) => ({ ...prev, interested_domain: option.value }))}
-            className={`p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all ${
-              formData.interested_domain === option.value
+            className={`p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all ${formData.interested_domain === option.value
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border hover:border-primary/50'
-            }`}
+              }`}
           >
             {option.label}
           </button>
@@ -823,11 +789,10 @@ const LeadForm = ({
               type="button"
               disabled={isViewMode}
               onClick={() => setFormData((prev: any) => ({ ...prev, payment_stage: option.value }))}
-              className={`p-2 sm:p-3 rounded-lg border-2 text-[10px] sm:text-sm font-medium transition-all ${
-                formData.payment_stage === option.value
+              className={`p-2 sm:p-3 rounded-lg border-2 text-[10px] sm:text-sm font-medium transition-all ${formData.payment_stage === option.value
                   ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
                   : 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 text-emerald-600 dark:text-emerald-400'
-              }`}
+                }`}
             >
               {option.label}
             </button>
@@ -848,7 +813,7 @@ const LeadForm = ({
         const isExpired = lead?.followup_date && new Date(lead.followup_date) < new Date() && !formData.followup_date;
         const currentDateExpired = formData.followup_date && new Date(formData.followup_date) < new Date();
         const isMaxAttempts = (lead?.followup_count || 0) >= 6;
-        
+
         return (
           <div className={`space-y-2 p-3 sm:p-4 rounded-lg border ${isExpired || currentDateExpired ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800' : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900'}`}>
             <Label htmlFor="followup_date" className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isExpired || currentDateExpired ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
@@ -872,7 +837,7 @@ const LeadForm = ({
                 </div>
               )}
             </Label>
-            
+
             {/* Expired date warning */}
             {(isExpired || currentDateExpired) && !isMaxAttempts && (
               <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
@@ -883,7 +848,7 @@ const LeadForm = ({
                 </div>
               </div>
             )}
-            
+
             {/* Max attempts reached */}
             {isMaxAttempts && (
               <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
@@ -894,7 +859,7 @@ const LeadForm = ({
                 </div>
               </div>
             )}
-            
+
             <Input
               id="followup_date"
               type="datetime-local"
@@ -905,8 +870,8 @@ const LeadForm = ({
               min={new Date().toISOString().slice(0, 16)}
             />
             <p className={`text-xs ${isExpired || currentDateExpired ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
-              {isMaxAttempts 
-                ? 'Change status to Converted or Rejected to proceed.' 
+              {isMaxAttempts
+                ? 'Change status to Converted or Rejected to proceed.'
                 : `You will be notified on this date. (${6 - (lead?.followup_count || 0)} changes remaining)`}
             </p>
           </div>
@@ -1017,9 +982,9 @@ const LeadForm = ({
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>
-        <Button 
-          type="submit" 
-          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700" 
+        <Button
+          type="submit"
+          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
           disabled={isSubmitting || isUploading}
         >
           {isSubmitting || isUploading ? (
