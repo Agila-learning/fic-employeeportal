@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLocation, Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserPlus, 
-  FileSpreadsheet, 
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  FileSpreadsheet,
   LogOut,
   ChevronRight,
   ClipboardList,
@@ -39,15 +39,10 @@ const Sidebar = () => {
   useEffect(() => {
     if (user?.role !== 'admin') return;
     const fetchCount = async () => {
-      const { count } = await supabase
-        .from('leave_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      setPendingLeaveCount(count || 0);
+      // Temporary: Backend count endpoint needed or just fetch list
+      setPendingLeaveCount(0);
     };
     fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
   }, [user?.role]);
 
   useEffect(() => {
@@ -73,7 +68,7 @@ const Sidebar = () => {
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/employees', icon: Users, label: 'Employees' },
-    
+
     { to: '/admin/leads', icon: FileSpreadsheet, label: 'All Leads' },
     { to: '/admin/followups', icon: CalendarClock, label: 'Follow-ups' },
     { to: '/admin/tasks', icon: ClipboardList, label: 'Tasks' },
@@ -124,7 +119,7 @@ const Sidebar = () => {
 
       {/* Overlay for mobile */}
       {isOpen && isMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
