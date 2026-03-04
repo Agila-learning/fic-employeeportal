@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { employeeService } from '@/api/employeeService';
 import { toast } from 'sonner';
 import { UserPlus, Mail, Lock, User, IdCard, Shield } from 'lucide-react';
 
@@ -26,7 +26,7 @@ const CreateEmployeeDialog = ({ open, onOpenChange, onSuccess }: CreateEmployeeD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.email || !formData.password) {
       toast.error('Name, email, and password are required');
       return;
@@ -40,26 +40,13 @@ const CreateEmployeeDialog = ({ open, onOpenChange, onSuccess }: CreateEmployeeD
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-employee', {
-        body: {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          employee_id: formData.employee_id || null,
-          role: formData.role
-        }
+      await employeeService.createEmployee({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        employee_id: formData.employee_id || null,
+        role: formData.role
       });
-
-      if (error) {
-        console.error('Function error:', error);
-        toast.error(error.message || 'Failed to create employee');
-        return;
-      }
-
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
 
       toast.success(`Employee ${formData.name} created successfully!`);
       setFormData({ name: '', email: '', password: '', employee_id: '', role: 'employee' });
@@ -67,7 +54,7 @@ const CreateEmployeeDialog = ({ open, onOpenChange, onSuccess }: CreateEmployeeD
       onSuccess?.();
     } catch (error: any) {
       console.error('Error creating employee:', error);
-      toast.error(error.message || 'Failed to create employee');
+      toast.error(error.response?.data?.message || 'Failed to create employee');
     } finally {
       setIsSubmitting(false);
     }
