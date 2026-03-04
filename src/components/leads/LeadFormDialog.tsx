@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Lead, LeadStatus, LeadSource, PaymentStage, InterestedDomain, STATUS_OPTIONS, STATUS_OPTIONS_ADMIN, SOURCE_OPTIONS, PAYMENT_STAGE_OPTIONS, INTERESTED_DOMAIN_OPTIONS } from '@/types';
 import { leadService } from '@/api/leadService';
+import { useLeads, useLeadComments, useLeadStatusHistory } from '@/hooks/useLeads';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -762,8 +763,8 @@ const LeadForm = ({
             disabled={isViewMode}
             onClick={() => setFormData((prev: any) => ({ ...prev, interested_domain: option.value }))}
             className={`p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all ${formData.interested_domain === option.value
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border hover:border-primary/50'
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border hover:border-primary/50'
               }`}
           >
             {option.label}
@@ -790,8 +791,8 @@ const LeadForm = ({
               disabled={isViewMode}
               onClick={() => setFormData((prev: any) => ({ ...prev, payment_stage: option.value }))}
               className={`p-2 sm:p-3 rounded-lg border-2 text-[10px] sm:text-sm font-medium transition-all ${formData.payment_stage === option.value
-                  ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                  : 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 text-emerald-600 dark:text-emerald-400'
+                ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                : 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 text-emerald-600 dark:text-emerald-400'
                 }`}
             >
               {option.label}

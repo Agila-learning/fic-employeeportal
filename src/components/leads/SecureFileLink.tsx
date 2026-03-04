@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { leadService } from '@/api/leadService';
 import { toast } from 'sonner';
 import { ExternalLink, Loader2 } from 'lucide-react';
 
@@ -9,11 +9,6 @@ interface SecureFileLinkProps {
   className?: string;
 }
 
-/**
- * Component that generates short-expiry signed URLs for private storage files
- * on-demand when the user clicks to view. This prevents URL sharing and
- * ensures only authorized users can access files.
- */
 const SecureFileLink = ({ storedPath, label, className = '' }: SecureFileLinkProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,15 +26,9 @@ const SecureFileLink = ({ storedPath, label, className = '' }: SecureFileLinkPro
       // Check if it's new format (bucket:path) or legacy full URL
       if (storedPath.includes(':') && !storedPath.startsWith('http')) {
         const [bucket, filePath] = storedPath.split(':');
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(filePath, 900); // 15 minute expiry for security
-
-        if (error) throw error;
+        const data = await leadService.getSignedUrl(bucket, filePath);
         url = data.signedUrl;
       } else {
-        // Legacy: if it's already a signed URL or public URL, use as-is
-        // Note: Old signed URLs may have expired
         url = storedPath;
       }
 

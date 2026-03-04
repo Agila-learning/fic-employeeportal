@@ -55,5 +55,10 @@ export const leadService = {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
+    },
+
+    getSignedUrl: async (bucket: string, filePath: string) => {
+        const response = await apiClient.get(`/leads/signed-url?bucket=${bucket}&path=${filePath}`);
+        return response.data;
     }
 };
