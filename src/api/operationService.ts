@@ -59,8 +59,50 @@ export const operationService = {
         return response.data;
     },
 
-    deleteHoliday: async (id: string) => {
-        const response = await apiClient.delete(`/operations/holidays/${id}`);
+    // Expenses
+    getMyExpenses: async () => {
+        const response = await apiClient.get('/operations/expenses/my');
+        return response.data;
+    },
+
+    getAllExpenses: async (filters: any) => {
+        const response = await apiClient.get('/operations/expenses', { params: filters });
+        return response.data;
+    },
+
+    createExpense: async (expenseData: any) => {
+        const response = await apiClient.post('/operations/expenses', expenseData);
+        return response.data;
+    },
+
+    updateExpenseStatus: async (id: string, status: string) => {
+        const response = await apiClient.put(`/operations/expenses/${id}/status`, { status });
+        return response.data;
+    },
+
+    deleteExpense: async (id: string) => {
+        const response = await apiClient.delete(`/operations/expenses/${id}`);
+        return response.data;
+    },
+
+    // Credits
+    getMyCredits: async () => {
+        const response = await apiClient.get('/operations/credits/my');
+        return response.data;
+    },
+
+    getAllCredits: async (filters: any) => {
+        const response = await apiClient.get('/operations/credits', { params: filters });
+        return response.data;
+    },
+
+    createCredit: async (creditData: any) => {
+        const response = await apiClient.post('/operations/credits', creditData);
+        return response.data;
+    },
+
+    deleteCredit: async (id: string) => {
+        const response = await apiClient.delete(`/operations/credits/${id}`);
         return response.data;
     }
 };
