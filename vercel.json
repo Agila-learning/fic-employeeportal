@@ -1,6 +1,5 @@
 {
-  "installCommand": "npm install --include=dev",
-  "buildCommand": "./node_modules/.bin/vite build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/lovable-cloud/(.*)",
