@@ -151,33 +151,27 @@ const LeadsTable = ({ leads, showAssignee = false, onRefresh, defaultPaymentStag
   };
 
   const exportToExcel = () => {
-    const headers = ['Candidate ID', 'Name', 'Email', 'Phone', 'Qualification', 'Experience', 'Current CTC', 'Expected CTC', 'Status', 'Payment Stage', 'Domain', 'Source', 'Referred By', 'Created Date'];
+    const headers = ['name', 'email', 'phone', 'course', 'interested_domain', 'status', 'source', 'notes'];
     const csvContent = [
       headers.join(','),
       ...filteredLeads.map(lead => [
-        lead.candidate_id,
-        `"${lead.name}"`,
-        lead.email,
-        lead.phone,
-        lead.qualification || '',
-        lead.past_experience || '',
-        lead.current_ctc || '',
-        lead.expected_ctc || '',
-        STATUS_OPTIONS.find(s => s.value === lead.status)?.label || lead.status,
-        lead.payment_stage || '',
+        `"${(lead.name || '').replace(/"/g, '""')}"`,
+        lead.email || '',
+        lead.phone || '',
+        `"${(lead.qualification || '').replace(/"/g, '""')}"`,
         INTERESTED_DOMAIN_OPTIONS.find(d => d.value === lead.interested_domain)?.label || lead.interested_domain || '',
+        STATUS_OPTIONS.find(s => s.value === lead.status)?.label || lead.status,
         SOURCE_OPTIONS.find(s => s.value === lead.source)?.label || lead.source,
-        `"${lead.created_by_name || ''}"`,
-        format(parseISO(lead.created_at), 'yyyy-MM-dd'),
+        `"${(lead.notes || '').replace(/"/g, '""')}"`,
       ].join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `fic_leads_${dateFilter || new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    toast.success('Leads exported successfully');
+    toast.success(`${filteredLeads.length} leads exported successfully`);
   };
 
   // Daily report export
